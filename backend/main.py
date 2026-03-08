@@ -180,3 +180,65 @@ async def get_equipment(nickname: str):
         "total_items": len(items),
         "items": items,
     }
+
+# ============================================================
+# 엔드포인트 4: 유니온 정보 조회
+# ============================================================
+@app.get("/api/union")
+async def get_union(nickname: str):
+    """
+    닉네임으로 유니온 레벨, 등급, 공격대 스탯을 조회한다.
+    """
+
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
+
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+
+        # 1단계: OCID 조회
+        ocid_response = await client.get(
+            f"{BASE_URL}/id",
+            headers=HEADERS,
+            params={"character_name": nickname},
+        )
+
+        if ocid_response.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"'{nickname}' 캐릭터를 찾을 수 없습니다.")
+
+        ocid = ocid_response.json()["ocid"]
+
+        # 2단계: 유니온 기본 정보 + 공격대 정보 동시 조회
+        union_task = client.get(
+            f"{BASE_URL}/user/union",
+            headers=HEADERS,
+            params={"ocid": ocid, "date": yesterday},
+        )
+        raider_task = client.get(
+            f"{BASE_URL}/user/union-raider",
+            headers=HEADERS,
+            params={"ocid": ocid, "date": yesterday},
+        )
+
+        union_response, raider_response = await asyncio.gather(union_task, raider_task)
+
+        if union_response.status_code != 200:
+            raise HTTPException(status_code=502, detail="유니온 정보 조회 실패")
+        if raider_response.status_code != 200:
+            raise HTTPException(status_code=502, detail="유니온 공격대 정보 조회 실패")
+
+        union_data = union_response.json()
+        raider_data = raider_response.json()
+
+    return {
+        "character_name": nickname,
+        "date": union_data.get("date"),
+        "union_level": union_data.get("union_level"),
+        "union_grade": union_data.get("union_grade"),
+        "union_artifact_level": union_data.get("union_artifact_level"),
+        "union_artifact_exp": union_data.get("union_artifact_exp"),
+        "union_artifact_point": union_data.get("union_artifact_point"),
+        "union_raider_stats": raider_data.get("union_raider_stat"),
+        "union_occupied_stats": raider_data.get("union_occupied_stat"),
+    }
