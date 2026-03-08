@@ -15,6 +15,10 @@ from services.nexon_api import (
     fetch_hyper_stat,
     fetch_symbol_equipment,
     fetch_ability,
+    fetch_set_effect,
+    fetch_link_skill,
+    fetch_hexamatrix,
+    fetch_hexamatrix_stat,
 )
 
 router = APIRouter(prefix="/api", tags=["캐릭터"])
@@ -349,4 +353,86 @@ async def get_all_info(nickname: str):
             "preset_2": ability_data.get("ability_preset_2"),
             "preset_3": ability_data.get("ability_preset_3"),
         },
+    }
+
+
+# ============================================================
+# 세트 효과 조회
+# ============================================================
+@router.get("/set-effect")
+async def get_set_effect(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        data = await fetch_set_effect(client, ocid, yesterday)
+
+    return {
+        "character_name": nickname,
+        "date": data.get("date"),
+        "set_effect": data.get("set_effect"),
+    }
+
+
+# ============================================================
+# 링크 스킬 조회
+# ============================================================
+@router.get("/link-skill")
+async def get_link_skill(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        data = await fetch_link_skill(client, ocid, yesterday)
+
+    return {
+        "character_name": nickname,
+        "date": data.get("date"),
+        "character_class": data.get("character_class"),
+        "character_link_skill": data.get("character_link_skill"),
+        "character_link_skill_preset_1": data.get("character_link_skill_preset_1"),
+        "character_link_skill_preset_2": data.get("character_link_skill_preset_2"),
+        "character_link_skill_preset_3": data.get("character_link_skill_preset_3"),
+        "character_owned_link_skill": data.get("character_owned_link_skill"),
+    }
+
+
+# ============================================================
+# HEXA 스킬 조회
+# ============================================================
+@router.get("/hexamatrix")
+async def get_hexamatrix(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        data = await fetch_hexamatrix(client, ocid, yesterday)
+
+    return {
+        "character_name": nickname,
+        "date": data.get("date"),
+        "character_hexa_core_equipment": data.get("character_hexa_core_equipment"),
+    }
+
+
+# ============================================================
+# HEXA 스탯 조회
+# ============================================================
+@router.get("/hexamatrix-stat")
+async def get_hexamatrix_stat(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        data = await fetch_hexamatrix_stat(client, ocid, yesterday)
+
+    return {
+        "character_name": nickname,
+        "date": data.get("date"),
+        "character_hexa_stat_core": data.get("character_hexa_stat_core"),
+        "preset_hexa_stat_core": data.get("preset_hexa_stat_core"),
     }

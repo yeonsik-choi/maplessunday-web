@@ -119,3 +119,51 @@ async def fetch_ability(client: httpx.AsyncClient, ocid: str, date: str):
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="어빌리티 조회 실패")
     return response.json()
+
+
+async def fetch_set_effect(client: httpx.AsyncClient, ocid: str, date: str):
+    """세트 효과 조회"""
+    response = await client.get(
+        f"{BASE_URL}/character/set-effect",
+        headers=HEADERS,
+        params={"ocid": ocid, "date": date},
+    )
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="세트 효과 조회 실패")
+    return response.json()
+
+
+async def fetch_link_skill(client: httpx.AsyncClient, ocid: str, date: str):
+    """링크 스킬 조회"""
+    response = await client.get(
+        f"{BASE_URL}/character/link-skill",
+        headers=HEADERS,
+        params={"ocid": ocid, "date": date},
+    )
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="링크 스킬 조회 실패")
+    return response.json()
+
+
+async def fetch_hexamatrix(client: httpx.AsyncClient, ocid: str, date: str):
+    """HEXA 스킬 조회"""
+    response = await client.get(
+        f"{BASE_URL}/character/hexamatrix",
+        headers=HEADERS,
+        params={"ocid": ocid, "date": date},
+    )
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="HEXA 스킬 조회 실패")
+    return response.json()
+
+
+async def fetch_hexamatrix_stat(client: httpx.AsyncClient, ocid: str, date: str):
+    """HEXA 스탯 조회"""
+    response = await client.get(
+        f"{BASE_URL}/character/hexamatrix-stat",
+        headers=HEADERS,
+        params={"ocid": ocid, "date": date},
+    )
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="HEXA 스탯 조회 실패")
+    return response.json()
