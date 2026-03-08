@@ -225,3 +225,128 @@ async def get_ability(nickname: str):
         "ability_preset_2": data.get("ability_preset_2"),
         "ability_preset_3": data.get("ability_preset_3"),
     }
+
+# ============================================================
+# 전체 정보 한번에 조회 (통합)
+# ============================================================
+@router.get("/all")
+async def get_all_info(nickname: str):
+    """닉네임 하나로 모든 정보를 한번에 조회한다."""
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        ocid = await get_ocid(client, nickname)
+
+        # 8개 API 동시 호출 (일부 실패해도 나머지는 반환)
+        results = await asyncio.gather(
+            fetch_character_basic(client, ocid, yesterday),
+            fetch_character_stat(client, ocid, yesterday),
+            fetch_item_equipment(client, ocid, yesterday),
+            fetch_union(client, ocid, yesterday),
+            fetch_union_raider(client, ocid, yesterday),
+            fetch_hyper_stat(client, ocid, yesterday),
+            fetch_symbol_equipment(client, ocid, yesterday),
+            fetch_ability(client, ocid, yesterday),
+            return_exceptions=True,
+        )
+
+        basic = results[0] if not isinstance(results[0], Exception) else {}
+        stat = results[1] if not isinstance(results[1], Exception) else {}
+        equip_data = results[2] if not isinstance(results[2], Exception) else {}
+        union_data = results[3] if not isinstance(results[3], Exception) else {}
+        raider_data = results[4] if not isinstance(results[4], Exception) else {}
+        hyper_data = results[5] if not isinstance(results[5], Exception) else {}
+        symbol_data = results[6] if not isinstance(results[6], Exception) else {}
+        ability_data = results[7] if not isinstance(results[7], Exception) else {}
+
+    # 스탯 정리
+    combat_power = None
+    main_stats = []
+    for s in stat.get("final_stat", []):  
+        if s["stat_name"] == "전투력":
+            combat_power = s["stat_value"]
+        if s["stat_name"] in [
+            "전투력", "STR", "DEX", "INT", "LUK",
+            "최대 HP", "최대 MP",
+            "공격력", "마력",
+            "스타포스", "보스 몬스터 데미지",
+            "방어율 무시", "크리티컬 확률", "크리티컬 데미지",
+        ]:
+            main_stats.append({"name": s["stat_name"], "value": s["stat_value"]})
+
+    # 장비 정리
+    items = []
+    for item in equip_data.get("item_equipment", []):
+        items.append({
+            "slot": item.get("item_equipment_slot"),
+            "name": item.get("item_name"),
+            "icon": item.get("item_icon"),
+            "starforce": item.get("starforce"),
+            "potential_option_grade": item.get("potential_option_grade"),
+            "potential_option_1": item.get("potential_option_1"),
+            "potential_option_2": item.get("potential_option_2"),
+            "potential_option_3": item.get("potential_option_3"),
+            "additional_potential_option_grade": item.get("additional_potential_option_grade"),
+            "additional_potential_option_1": item.get("additional_potential_option_1"),
+            "additional_potential_option_2": item.get("additional_potential_option_2"),
+            "additional_potential_option_3": item.get("additional_potential_option_3"),
+            "scroll_upgrade": item.get("scroll_upgrade"),
+        })
+
+    # 심볼 정리
+    symbols = []
+    for s in symbol_data.get("symbol", []):
+        symbols.append({
+            "name": s.get("symbol_name"),
+            "icon": s.get("symbol_icon"),
+            "force": s.get("symbol_force"),
+            "level": s.get("symbol_level"),
+            "str": s.get("symbol_str"),
+            "dex": s.get("symbol_dex"),
+            "int": s.get("symbol_int"),
+            "luk": s.get("symbol_luk"),
+            "hp": s.get("symbol_hp"),
+        })
+
+    return {
+        # 기본 정보
+        "character_name": basic.get("character_name"),
+        "character_level": basic.get("character_level"),
+        "character_class": basic.get("character_class"),
+        "world_name": basic.get("world_name"),
+        "character_image": basic.get("character_image"),
+        "character_gender": basic.get("character_gender"),
+        "character_guild_name": basic.get("character_guild_name"),
+        "date": basic.get("date"),
+        # 스탯
+        "combat_power": combat_power,
+        "main_stats": main_stats,
+        # 장비
+        "equipment": {"total_items": len(items), "items": items},
+        # 유니온
+        "union": {
+            "union_level": union_data.get("union_level"),
+            "union_grade": union_data.get("union_grade"),
+            "union_artifact_level": union_data.get("union_artifact_level"),
+            "union_raider_stats": raider_data.get("union_raider_stat"),
+            "union_occupied_stats": raider_data.get("union_occupied_stat"),
+        },
+        # 하이퍼스탯
+        "hyper_stat": {
+            "use_preset_no": hyper_data.get("use_preset_no"),
+            "preset_1": hyper_data.get("hyper_stat_preset_1"),
+            "preset_2": hyper_data.get("hyper_stat_preset_2"),
+            "preset_3": hyper_data.get("hyper_stat_preset_3"),
+        },
+        # 심볼
+        "symbols": {"total": len(symbols), "list": symbols},
+        # 어빌리티
+        "ability": {
+            "grade": ability_data.get("ability_grade"),
+            "info": ability_data.get("ability_info"),
+            "preset_1": ability_data.get("ability_preset_1"),
+            "preset_2": ability_data.get("ability_preset_2"),
+            "preset_3": ability_data.get("ability_preset_3"),
+        },
+    }
