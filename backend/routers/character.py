@@ -4,11 +4,14 @@ import httpx
 from fastapi import APIRouter, HTTPException
 
 from core.config import NEXON_API_KEY
+from schemas.character_all import CharacterAllResponse
 from services.nexon_api import (
     get_ocid,
     get_yesterday,
     fetch_character_basic,
     fetch_character_stat,
+    fetch_character_popularity,
+    fetch_overall_ranking,
     fetch_item_equipment,
     fetch_union,
     fetch_union_raider,
@@ -23,75 +26,27 @@ from services.nexon_api import (
 
 router = APIRouter(prefix="/api", tags=["캐릭터"])
 
+MAIN_STAT_NAMES = frozenset({
+    "전투력", "STR", "DEX", "INT", "LUK",
+    "최대 HP", "최대 MP",
+    "공격력", "마력",
+    "스타포스", "보스 몬스터 데미지",
+    "방어율 무시", "크리티컬 확률", "크리티컬 데미지",
+})
 
-def check_api_key():
-    """API 키가 설정되어 있는지 확인"""
-    if not NEXON_API_KEY:
-        raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
 
-
-# ============================================================
-# 캐릭터 기본 정보 + 스탯 검색
-# ============================================================
-@router.get("/search")
-async def search_character(nickname: str):
-    check_api_key()
-    yesterday = get_yesterday()
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        ocid = await get_ocid(client, nickname)
-
-        basic, stat = await asyncio.gather(
-            fetch_character_basic(client, ocid, yesterday),
-            fetch_character_stat(client, ocid, yesterday),
-        )
-
-    # 주요 스탯 추출
+def combat_power_and_main_stats(stat: dict):
     combat_power = None
     main_stats = []
-
     for s in stat.get("final_stat", []):
         if s["stat_name"] == "전투력":
             combat_power = s["stat_value"]
-        if s["stat_name"] in [
-            "전투력", "STR", "DEX", "INT", "LUK",
-            "최대 HP", "최대 MP",
-            "공격력", "마력",
-            "스타포스", "보스 몬스터 데미지",
-            "방어율 무시", "크리티컬 확률", "크리티컬 데미지",
-        ]:
-            main_stats.append({
-                "name": s["stat_name"],
-                "value": s["stat_value"],
-            })
-
-    return {
-        "character_name": basic.get("character_name"),
-        "character_level": basic.get("character_level"),
-        "character_class": basic.get("character_class"),
-        "world_name": basic.get("world_name"),
-        "character_image": basic.get("character_image"),
-        "character_gender": basic.get("character_gender"),
-        "character_guild_name": basic.get("character_guild_name"),
-        "character_exp_rate": basic.get("character_exp_rate"),
-        "combat_power": combat_power,
-        "main_stats": main_stats,
-        "date": basic.get("date"),
-    }
+        if s["stat_name"] in MAIN_STAT_NAMES:
+            main_stats.append({"name": s["stat_name"], "value": s["stat_value"]})
+    return combat_power, main_stats
 
 
-# ============================================================
-# 장비 정보 조회
-# ============================================================
-@router.get("/equipment")
-async def get_equipment(nickname: str):
-    check_api_key()
-    yesterday = get_yesterday()
-
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        ocid = await get_ocid(client, nickname)
-        equip_data = await fetch_item_equipment(client, ocid, yesterday)
-
+def map_equipment_items(equip_data: dict) -> list:
     items = []
     for item in equip_data.get("item_equipment", []):
         items.append({
@@ -109,6 +64,184 @@ async def get_equipment(nickname: str):
             "additional_potential_option_3": item.get("additional_potential_option_3"),
             "scroll_upgrade": item.get("scroll_upgrade"),
         })
+    return items
+
+
+def map_symbol_rows(data: dict, *, include_growth: bool) -> list:
+    symbols = []
+    for s in data.get("symbol", []):
+        row = {
+            "name": s.get("symbol_name"),
+            "icon": s.get("symbol_icon"),
+            "force": s.get("symbol_force"),
+            "level": s.get("symbol_level"),
+            "str": s.get("symbol_str"),
+            "dex": s.get("symbol_dex"),
+            "int": s.get("symbol_int"),
+            "luk": s.get("symbol_luk"),
+            "hp": s.get("symbol_hp"),
+        }
+        if include_growth:
+            row["growth_count"] = s.get("symbol_growth_count")
+            row["require_growth_count"] = s.get("symbol_require_growth_count")
+        symbols.append(row)
+    return symbols
+
+
+def extract_overall_rank(
+    ranking_payload: dict,
+    character_name: str | None,
+    world_name: str | None,
+) -> int | None:
+    """종합 랭킹 응답에서 캐릭터(이름+월드 일치) 순위를 찾는다. 첫 페이지에 없으면 None."""
+    if not ranking_payload or not character_name or not world_name:
+        return None
+    for row in ranking_payload.get("ranking") or []:
+        if (
+            row.get("character_name") == character_name
+            and row.get("world_name") == world_name
+        ):
+            return row.get("ranking")
+    return None
+
+
+def check_api_key():
+    """API 키가 설정되어 있는지 확인"""
+    if not NEXON_API_KEY:
+        raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
+
+
+# ============================================================
+# 캐릭터 기본 정보 + 스탯 검색
+# ============================================================
+@router.get("/search")
+async def search_character(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=12.0) as client:
+        ocid = await get_ocid(client, nickname)
+
+        basic, stat = await asyncio.gather(
+            fetch_character_basic(client, ocid, yesterday),
+            fetch_character_stat(client, ocid, yesterday),
+        )
+
+        popularity = None
+        popularity_date = None
+        try:
+            pop = await fetch_character_popularity(client, ocid, yesterday)
+            popularity = pop.get("popularity")
+            popularity_date = pop.get("date")
+        except HTTPException:
+            pass
+
+        overall_rank = None
+        ranking_date = None
+        try:
+            rdata = await fetch_overall_ranking(
+                client,
+                ocid,
+                yesterday,
+                world_name=basic.get("world_name"),
+                class_name=basic.get("character_class"),
+            )
+            overall_rank = extract_overall_rank(
+                rdata,
+                basic.get("character_name"),
+                basic.get("world_name"),
+            )
+            ranking_date = rdata.get("date")
+        except HTTPException:
+            pass
+
+    combat_power, main_stats = combat_power_and_main_stats(stat)
+
+    return {
+        "character_name": basic.get("character_name"),
+        "character_level": basic.get("character_level"),
+        "character_class": basic.get("character_class"),
+        "world_name": basic.get("world_name"),
+        "character_image": basic.get("character_image"),
+        "character_gender": basic.get("character_gender"),
+        "character_guild_name": basic.get("character_guild_name"),
+        "character_exp_rate": basic.get("character_exp_rate"),
+        "combat_power": combat_power,
+        "main_stats": main_stats,
+        "date": basic.get("date"),
+        "popularity": popularity,
+        "popularity_date": popularity_date,
+        "overall_rank": overall_rank,
+        "ranking_date": ranking_date,
+    }
+
+
+# ============================================================
+# 인기도 조회
+# ============================================================
+@router.get("/popularity")
+async def get_popularity(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        data = await fetch_character_popularity(client, ocid, yesterday)
+
+    return {
+        "character_name": nickname,
+        "date": data.get("date"),
+        "popularity": data.get("popularity"),
+    }
+
+
+# ============================================================
+# 종합 랭킹 (해당 캐릭터 순위)
+# ============================================================
+@router.get("/ranking-overall")
+async def get_ranking_overall(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        basic = await fetch_character_basic(client, ocid, yesterday)
+        rdata = await fetch_overall_ranking(
+            client,
+            ocid,
+            yesterday,
+            world_name=basic.get("world_name"),
+            class_name=basic.get("character_class"),
+        )
+
+    rank = extract_overall_rank(
+        rdata,
+        basic.get("character_name"),
+        basic.get("world_name"),
+    )
+
+    return {
+        "character_name": basic.get("character_name"),
+        "world_name": basic.get("world_name"),
+        "character_class": basic.get("character_class"),
+        "date": rdata.get("date"),
+        "overall_rank": rank,
+    }
+
+
+# ============================================================
+# 장비 정보 조회
+# ============================================================
+@router.get("/equipment")
+async def get_equipment(nickname: str):
+    check_api_key()
+    yesterday = get_yesterday()
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        ocid = await get_ocid(client, nickname)
+        equip_data = await fetch_item_equipment(client, ocid, yesterday)
+
+    items = map_equipment_items(equip_data)
 
     return {
         "character_name": nickname,
@@ -181,21 +314,7 @@ async def get_symbol(nickname: str):
         ocid = await get_ocid(client, nickname)
         data = await fetch_symbol_equipment(client, ocid, yesterday)
 
-    symbols = []
-    for s in data.get("symbol", []):
-        symbols.append({
-            "name": s.get("symbol_name"),
-            "icon": s.get("symbol_icon"),
-            "force": s.get("symbol_force"),
-            "level": s.get("symbol_level"),
-            "str": s.get("symbol_str"),
-            "dex": s.get("symbol_dex"),
-            "int": s.get("symbol_int"),
-            "luk": s.get("symbol_luk"),
-            "hp": s.get("symbol_hp"),
-            "growth_count": s.get("symbol_growth_count"),
-            "require_growth_count": s.get("symbol_require_growth_count"),
-        })
+    symbols = map_symbol_rows(data, include_growth=True)
 
     return {
         "character_name": nickname,
@@ -230,10 +349,11 @@ async def get_ability(nickname: str):
         "ability_preset_3": data.get("ability_preset_3"),
     }
 
+
 # ============================================================
 # 전체 정보 한번에 조회 (통합)
 # ============================================================
-@router.get("/all")
+@router.get("/all", response_model=CharacterAllResponse)
 async def get_all_info(nickname: str):
     """닉네임 하나로 모든 정보를 한번에 조회한다."""
     check_api_key()
@@ -242,7 +362,7 @@ async def get_all_info(nickname: str):
     async with httpx.AsyncClient(timeout=15.0) as client:
         ocid = await get_ocid(client, nickname)
 
-        # 12개 API 동시 호출 (일부 실패해도 나머지는 반환)
+        # 13개 API 동시 호출 (일부 실패해도 나머지는 반환)
         results = await asyncio.gather(
             fetch_character_basic(client, ocid, yesterday),
             fetch_character_stat(client, ocid, yesterday),
@@ -256,6 +376,7 @@ async def get_all_info(nickname: str):
             fetch_link_skill(client, ocid, yesterday),
             fetch_hexamatrix(client, ocid, yesterday),
             fetch_hexamatrix_stat(client, ocid, yesterday),
+            fetch_character_popularity(client, ocid, yesterday),
             return_exceptions=True,
         )
 
@@ -271,55 +392,36 @@ async def get_all_info(nickname: str):
         link_skill_data = results[9] if not isinstance(results[9], Exception) else {}
         hexa_data = results[10] if not isinstance(results[10], Exception) else {}
         hexa_stat_data = results[11] if not isinstance(results[11], Exception) else {}
+        pop_raw = results[12] if not isinstance(results[12], Exception) else {}
 
-    # 스탯 정리
-    combat_power = None
-    main_stats = []
-    for s in stat.get("final_stat", []):  
-        if s["stat_name"] == "전투력":
-            combat_power = s["stat_value"]
-        if s["stat_name"] in [
-            "전투력", "STR", "DEX", "INT", "LUK",
-            "최대 HP", "최대 MP",
-            "공격력", "마력",
-            "스타포스", "보스 몬스터 데미지",
-            "방어율 무시", "크리티컬 확률", "크리티컬 데미지",
-        ]:
-            main_stats.append({"name": s["stat_name"], "value": s["stat_value"]})
+        ranking_data: dict = {}
+        if basic:
+            try:
+                ranking_data = await fetch_overall_ranking(
+                    client,
+                    ocid,
+                    yesterday,
+                    world_name=basic.get("world_name"),
+                    class_name=basic.get("character_class"),
+                )
+            except HTTPException:
+                ranking_data = {}
 
-    # 장비 정리
-    items = []
-    for item in equip_data.get("item_equipment", []):
-        items.append({
-            "slot": item.get("item_equipment_slot"),
-            "name": item.get("item_name"),
-            "icon": item.get("item_icon"),
-            "starforce": item.get("starforce"),
-            "potential_option_grade": item.get("potential_option_grade"),
-            "potential_option_1": item.get("potential_option_1"),
-            "potential_option_2": item.get("potential_option_2"),
-            "potential_option_3": item.get("potential_option_3"),
-            "additional_potential_option_grade": item.get("additional_potential_option_grade"),
-            "additional_potential_option_1": item.get("additional_potential_option_1"),
-            "additional_potential_option_2": item.get("additional_potential_option_2"),
-            "additional_potential_option_3": item.get("additional_potential_option_3"),
-            "scroll_upgrade": item.get("scroll_upgrade"),
-        })
+    combat_power, main_stats = combat_power_and_main_stats(stat)
+    items = map_equipment_items(equip_data)
+    symbols = map_symbol_rows(symbol_data, include_growth=False)
 
-    # 심볼 정리
-    symbols = []
-    for s in symbol_data.get("symbol", []):
-        symbols.append({
-            "name": s.get("symbol_name"),
-            "icon": s.get("symbol_icon"),
-            "force": s.get("symbol_force"),
-            "level": s.get("symbol_level"),
-            "str": s.get("symbol_str"),
-            "dex": s.get("symbol_dex"),
-            "int": s.get("symbol_int"),
-            "luk": s.get("symbol_luk"),
-            "hp": s.get("symbol_hp"),
-        })
+    popularity_val = None
+    popularity_date_val = None
+    if isinstance(pop_raw, dict) and pop_raw:
+        popularity_val = pop_raw.get("popularity")
+        popularity_date_val = pop_raw.get("date")
+
+    overall_rank_val = extract_overall_rank(
+        ranking_data,
+        basic.get("character_name"),
+        basic.get("world_name"),
+    )
 
     return {
         # 기본 정보
@@ -331,6 +433,10 @@ async def get_all_info(nickname: str):
         "character_gender": basic.get("character_gender"),
         "character_guild_name": basic.get("character_guild_name"),
         "date": basic.get("date"),
+        "popularity": popularity_val,
+        "popularity_date": popularity_date_val,
+        "overall_rank": overall_rank_val,
+        "ranking_date": ranking_data.get("date") if ranking_data else None,
         # 스탯
         "combat_power": combat_power,
         "main_stats": main_stats,
