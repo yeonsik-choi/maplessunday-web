@@ -46,46 +46,16 @@ def combat_power_and_main_stats(stat: dict):
     return combat_power, main_stats
 
 
-def map_equipment_items(equip_data: dict) -> list:
-    items = []
-    for item in equip_data.get("item_equipment", []):
-        items.append({
-            "slot": item.get("item_equipment_slot"),
-            "name": item.get("item_name"),
-            "icon": item.get("item_icon"),
-            "starforce": item.get("starforce"),
-            "potential_option_grade": item.get("potential_option_grade"),
-            "potential_option_1": item.get("potential_option_1"),
-            "potential_option_2": item.get("potential_option_2"),
-            "potential_option_3": item.get("potential_option_3"),
-            "additional_potential_option_grade": item.get("additional_potential_option_grade"),
-            "additional_potential_option_1": item.get("additional_potential_option_1"),
-            "additional_potential_option_2": item.get("additional_potential_option_2"),
-            "additional_potential_option_3": item.get("additional_potential_option_3"),
-            "scroll_upgrade": item.get("scroll_upgrade"),
-        })
-    return items
+def equipment_items_from_nexon(equip_data: dict) -> list:
+    """넥슨 character/item-equipment 의 item_equipment 원본 객체 목록 (필드 그대로)."""
+    raw = equip_data.get("item_equipment") or []
+    return [dict(x) for x in raw if isinstance(x, dict)]
 
 
-def map_symbol_rows(data: dict, *, include_growth: bool) -> list:
-    symbols = []
-    for s in data.get("symbol", []):
-        row = {
-            "name": s.get("symbol_name"),
-            "icon": s.get("symbol_icon"),
-            "force": s.get("symbol_force"),
-            "level": s.get("symbol_level"),
-            "str": s.get("symbol_str"),
-            "dex": s.get("symbol_dex"),
-            "int": s.get("symbol_int"),
-            "luk": s.get("symbol_luk"),
-            "hp": s.get("symbol_hp"),
-        }
-        if include_growth:
-            row["growth_count"] = s.get("symbol_growth_count")
-            row["require_growth_count"] = s.get("symbol_require_growth_count")
-        symbols.append(row)
-    return symbols
+def symbol_rows_from_nexon(symbol_data: dict) -> list:
+    """넥슨 symbol-equipment 의 symbol 원본 객체 목록 (symbol_name, symbol_icon 등 그대로)."""
+    raw = symbol_data.get("symbol") or []
+    return [dict(x) for x in raw if isinstance(x, dict)]
 
 
 def extract_overall_rank(
@@ -103,6 +73,43 @@ def extract_overall_rank(
         ):
             return row.get("ranking")
     return None
+
+
+async def fetch_three_overall_ranks(
+    client: httpx.AsyncClient,
+    ocid: str,
+    yesterday: str,
+    basic: dict,
+) -> tuple[int | None, int | None, int | None, str | None]:
+    """종합 / 서버(월드) / 직업(월드+직업) 필터별 종합 랭킹 순위. 실패 시 None."""
+    w = basic.get("world_name")
+    c = basic.get("character_class")
+    name = basic.get("character_name")
+
+    async def safe_rank(world_name, class_name):
+        try:
+            return await fetch_overall_ranking(
+                client, ocid, yesterday, world_name=world_name, class_name=class_name
+            )
+        except HTTPException:
+            return {}
+
+    overall_d, server_d, class_d = await asyncio.gather(
+        safe_rank(None, None),
+        safe_rank(w, None),
+        safe_rank(w, c),
+    )
+
+    overall_r = extract_overall_rank(overall_d, name, w)
+    server_r = extract_overall_rank(server_d, name, w)
+    class_r = extract_overall_rank(class_d, name, w)
+
+    rd = (
+        overall_d.get("date")
+        or server_d.get("date")
+        or class_d.get("date")
+    )
+    return overall_r, server_r, class_r, rd
 
 
 def check_api_key():
@@ -136,24 +143,12 @@ async def search_character(nickname: str):
         except HTTPException:
             pass
 
-        overall_rank = None
-        ranking_date = None
-        try:
-            rdata = await fetch_overall_ranking(
-                client,
-                ocid,
-                yesterday,
-                world_name=basic.get("world_name"),
-                class_name=basic.get("character_class"),
+        if basic:
+            overall_rank, server_rank, class_rank, ranking_date = (
+                await fetch_three_overall_ranks(client, ocid, yesterday, basic)
             )
-            overall_rank = extract_overall_rank(
-                rdata,
-                basic.get("character_name"),
-                basic.get("world_name"),
-            )
-            ranking_date = rdata.get("date")
-        except HTTPException:
-            pass
+        else:
+            overall_rank = server_rank = class_rank = ranking_date = None
 
     combat_power, main_stats = combat_power_and_main_stats(stat)
 
@@ -172,6 +167,8 @@ async def search_character(nickname: str):
         "popularity": popularity,
         "popularity_date": popularity_date,
         "overall_rank": overall_rank,
+        "server_rank": server_rank,
+        "class_rank": class_rank,
         "ranking_date": ranking_date,
     }
 
@@ -203,29 +200,21 @@ async def get_ranking_overall(nickname: str):
     check_api_key()
     yesterday = get_yesterday()
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         ocid = await get_ocid(client, nickname)
         basic = await fetch_character_basic(client, ocid, yesterday)
-        rdata = await fetch_overall_ranking(
-            client,
-            ocid,
-            yesterday,
-            world_name=basic.get("world_name"),
-            class_name=basic.get("character_class"),
+        overall_rank, server_rank, class_rank, ranking_date = (
+            await fetch_three_overall_ranks(client, ocid, yesterday, basic)
         )
-
-    rank = extract_overall_rank(
-        rdata,
-        basic.get("character_name"),
-        basic.get("world_name"),
-    )
 
     return {
         "character_name": basic.get("character_name"),
         "world_name": basic.get("world_name"),
         "character_class": basic.get("character_class"),
-        "date": rdata.get("date"),
-        "overall_rank": rank,
+        "date": ranking_date,
+        "overall_rank": overall_rank,
+        "server_rank": server_rank,
+        "class_rank": class_rank,
     }
 
 
@@ -241,7 +230,7 @@ async def get_equipment(nickname: str):
         ocid = await get_ocid(client, nickname)
         equip_data = await fetch_item_equipment(client, ocid, yesterday)
 
-    items = map_equipment_items(equip_data)
+    items = equipment_items_from_nexon(equip_data)
 
     return {
         "character_name": nickname,
@@ -314,7 +303,7 @@ async def get_symbol(nickname: str):
         ocid = await get_ocid(client, nickname)
         data = await fetch_symbol_equipment(client, ocid, yesterday)
 
-    symbols = map_symbol_rows(data, include_growth=True)
+    symbols = symbol_rows_from_nexon(data)
 
     return {
         "character_name": nickname,
@@ -359,7 +348,7 @@ async def get_all_info(nickname: str):
     check_api_key()
     yesterday = get_yesterday()
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         ocid = await get_ocid(client, nickname)
 
         # 13개 API 동시 호출 (일부 실패해도 나머지는 반환)
@@ -394,34 +383,22 @@ async def get_all_info(nickname: str):
         hexa_stat_data = results[11] if not isinstance(results[11], Exception) else {}
         pop_raw = results[12] if not isinstance(results[12], Exception) else {}
 
-        ranking_data: dict = {}
         if basic:
-            try:
-                ranking_data = await fetch_overall_ranking(
-                    client,
-                    ocid,
-                    yesterday,
-                    world_name=basic.get("world_name"),
-                    class_name=basic.get("character_class"),
-                )
-            except HTTPException:
-                ranking_data = {}
+            overall_rank_val, server_rank_val, class_rank_val, ranking_date_val = (
+                await fetch_three_overall_ranks(client, ocid, yesterday, basic)
+            )
+        else:
+            overall_rank_val = server_rank_val = class_rank_val = ranking_date_val = None
 
     combat_power, main_stats = combat_power_and_main_stats(stat)
-    items = map_equipment_items(equip_data)
-    symbols = map_symbol_rows(symbol_data, include_growth=False)
+    items = equipment_items_from_nexon(equip_data)
+    symbols = symbol_rows_from_nexon(symbol_data)
 
     popularity_val = None
     popularity_date_val = None
     if isinstance(pop_raw, dict) and pop_raw:
         popularity_val = pop_raw.get("popularity")
         popularity_date_val = pop_raw.get("date")
-
-    overall_rank_val = extract_overall_rank(
-        ranking_data,
-        basic.get("character_name"),
-        basic.get("world_name"),
-    )
 
     return {
         # 기본 정보
@@ -432,11 +409,14 @@ async def get_all_info(nickname: str):
         "character_image": basic.get("character_image"),
         "character_gender": basic.get("character_gender"),
         "character_guild_name": basic.get("character_guild_name"),
+        "character_exp_rate": basic.get("character_exp_rate"),
         "date": basic.get("date"),
         "popularity": popularity_val,
         "popularity_date": popularity_date_val,
         "overall_rank": overall_rank_val,
-        "ranking_date": ranking_data.get("date") if ranking_data else None,
+        "server_rank": server_rank_val,
+        "class_rank": class_rank_val,
+        "ranking_date": ranking_date_val,
         # 스탯
         "combat_power": combat_power,
         "main_stats": main_stats,

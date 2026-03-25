@@ -1,19 +1,20 @@
 """
-GET /api/all 응답 스키마 — OpenAPI(/docs)용. 넥슨 원본 일부는 구조가 자주 바뀌므로 Any로 둔 필드가 있음.
+GET /api/all 응답 스키마 — OpenAPI(/docs)용.
 
-정보창에서 쓰는 항목 ↔ JSON 필드 (통합 응답 기준):
+정보창 항목 ↔ JSON (통합 응답):
   캐릭터 이미지  → character_image
   닉네임         → character_name
   서버           → world_name
   직업           → character_class
   길드           → character_guild_name
-  랭킹           → overall_rank (없으면 null) / 날짜는 ranking_date
-  인기도         → popularity / 날짜는 popularity_date
   레벨           → character_level
-  유니온         → union (union_level, union_grade, …)
-  전투력         → combat_power
-  장비           → equipment.items (슬롯·이름·아이콘·잠재 등)
-  심볼           → symbols.list (배열, 키 이름은 리터럴 "list")
+  경험치%        → character_exp_rate
+  랭킹           → overall_rank / server_rank / class_rank (null 가능), ranking_date
+  인기도         → popularity / popularity_date
+  전투력·스탯    → combat_power, main_stats
+  장비           → equipment.items (넥슨 item-equipment 원본 키 그대로)
+  유니온         → union
+  심볼           → symbols.list (넥슨 symbol_* 키 그대로, JSON 키 이름은 "list")
 """
 
 from typing import Any
@@ -28,29 +29,13 @@ class MainStatItem(BaseModel):
     value: str | int | float | None = None
 
 
-class EquipmentItem(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    slot: str | None = None
-    name: str | None = None
-    icon: str | None = None
-    starforce: int | str | None = None
-    potential_option_grade: str | None = None
-    potential_option_1: str | None = None
-    potential_option_2: str | None = None
-    potential_option_3: str | None = None
-    additional_potential_option_grade: str | None = None
-    additional_potential_option_1: str | None = None
-    additional_potential_option_2: str | None = None
-    additional_potential_option_3: str | None = None
-    scroll_upgrade: int | str | None = None
-
-
 class EquipmentSection(BaseModel):
+    """items: 넥슨 character/item-equipment 의 각 장비 객체(원본 필드명)."""
+
     model_config = ConfigDict(extra="ignore")
 
     total_items: int = 0
-    items: list[EquipmentItem] = Field(default_factory=list)
+    items: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class UnionSection(BaseModel):
@@ -73,12 +58,9 @@ class HyperStatSection(BaseModel):
 
 
 class SymbolsSection(BaseModel):
-    """JSON 키 list는 Python 예약과 겹쳐 model_serializer로 맞춤."""
-
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     total: int = 0
-    # 클라이언트/문서상 필드명은 "list"
     symbol_list: list[dict[str, Any]] = Field(
         default_factory=list,
         serialization_alias="list",
@@ -96,7 +78,6 @@ class AbilitySection(BaseModel):
     preset_3: Any = None
 
 
-# OpenAPI(/docs) "Example Value"용 — 실제 넥슨 필드와 다를 수 있으나 구조 파악용
 CHARACTER_ALL_OPENAPI_EXAMPLE: dict[str, Any] = {
     "character_name": "캐릭터닉네임",
     "character_level": 280,
@@ -105,10 +86,13 @@ CHARACTER_ALL_OPENAPI_EXAMPLE: dict[str, Any] = {
     "character_image": "https://open.api.nexon.com/static/...",
     "character_gender": "male",
     "character_guild_name": "길드명",
+    "character_exp_rate": "50.973%",
     "date": "2025-03-20",
     "popularity": 42,
     "popularity_date": "2025-03-20",
     "overall_rank": 150,
+    "server_rank": 12,
+    "class_rank": 3,
     "ranking_date": "2025-03-20",
     "combat_power": "3575만 1234",
     "main_stats": [
@@ -116,22 +100,17 @@ CHARACTER_ALL_OPENAPI_EXAMPLE: dict[str, Any] = {
         {"name": "DEX", "value": "12000"},
     ],
     "equipment": {
-        "total_items": 15,
+        "total_items": 1,
         "items": [
             {
-                "slot": "모자",
-                "name": "아케인셰이드 메이지햇",
-                "icon": "https://...",
+                "item_equipment_slot": "모자",
+                "item_name": "아케인셰이드 메이지햇",
+                "item_icon": "https://...",
                 "starforce": 22,
                 "potential_option_grade": "레전드리",
                 "potential_option_1": "STR +12%",
-                "potential_option_2": None,
-                "potential_option_3": None,
-                "additional_potential_option_grade": None,
-                "additional_potential_option_1": None,
-                "additional_potential_option_2": None,
-                "additional_potential_option_3": None,
-                "scroll_upgrade": 10,
+                "item_total_option": {},
+                "item_base_option": {},
             }
         ],
     },
@@ -152,15 +131,17 @@ CHARACTER_ALL_OPENAPI_EXAMPLE: dict[str, Any] = {
         "total": 1,
         "list": [
             {
-                "name": "미궁",
-                "icon": "https://...",
-                "force": 60,
-                "level": 20,
-                "str": "100",
-                "dex": "0",
-                "int": "0",
-                "luk": "0",
-                "hp": "0",
+                "symbol_name": "미궁",
+                "symbol_icon": "https://...",
+                "symbol_force": 60,
+                "symbol_level": 20,
+                "symbol_str": "100",
+                "symbol_dex": "0",
+                "symbol_int": "0",
+                "symbol_luk": "0",
+                "symbol_hp": "0",
+                "symbol_growth_count": 0,
+                "symbol_require_growth_count": 10,
             }
         ],
     },
@@ -179,7 +160,7 @@ CHARACTER_ALL_OPENAPI_EXAMPLE: dict[str, Any] = {
 
 
 class CharacterAllResponse(BaseModel):
-    """캐릭터 정보창 통합 응답 (GET /api/all). 필드↔UI 항목은 모듈 독스트링 표 참고."""
+    """캐릭터 정보창 통합 응답 (GET /api/all)."""
 
     model_config = ConfigDict(
         extra="ignore",
@@ -193,11 +174,14 @@ class CharacterAllResponse(BaseModel):
     character_image: str | None = None
     character_gender: str | None = None
     character_guild_name: str | None = None
+    character_exp_rate: str | int | float | None = None
     date: str | None = None
 
     popularity: int | str | None = None
     popularity_date: str | None = None
     overall_rank: int | None = None
+    server_rank: int | None = None
+    class_rank: int | None = None
     ranking_date: str | None = None
 
     combat_power: str | int | float | None = None
