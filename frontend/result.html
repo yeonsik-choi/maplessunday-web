@@ -124,6 +124,21 @@
     
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── 스탯/장비 탭 좌우 분할 레이아웃 ── */
+    .stats-equip-layout { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
+    @media (max-width: 900px) { .stats-equip-layout { grid-template-columns: 1fr; } }
+    .stats-left-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+    .combat-power-card { background: linear-gradient(135deg, rgba(255,107,0,0.12), rgba(255,215,0,0.08)); border: 1.5px solid rgba(255,165,0,0.4); border-radius: 16px; padding: 20px; box-shadow: 0 6px 20px rgba(255,107,0,0.1); }
+    .combat-power-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: rgba(92,46,0,0.55); margin-bottom: 4px; letter-spacing: 0.8px; }
+    .combat-power-value { font-family: 'Black Han Sans', sans-serif; font-size: 2rem; background: linear-gradient(135deg, #FF6B00, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; }
+    .combat-power-sub { font-size: 0.72rem; color: rgba(92,46,0,0.5); margin-top: 4px; font-weight: 500; }
+    .stats-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .mini-stat { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,165,0,0.2); border-radius: 10px; padding: 9px 12px; }
+    .mini-stat-label { font-size: 0.64rem; font-weight: 800; color: rgba(92,46,0,0.5); margin-bottom: 2px; }
+    .mini-stat-value { font-family: 'Black Han Sans', sans-serif; font-size: 1rem; background: linear-gradient(135deg, #FF6B00, #D87A00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .equip-right-panel { min-width: 0; }
+    .equip-grid-compact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
     .info-card { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,250,240,0.9)); border: 1px solid rgba(255,165,0,0.25); border-radius: 14px; padding: 17px; box-shadow: 0 4px 12px rgba(255,165,0,0.05); }
     .info-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,165,0,0.15); font-size: 0.82rem; font-weight: 500; }
     .info-row:last-child { border-bottom: none; }
@@ -255,24 +270,47 @@
         </div>
 
         <div v-if="tab==='stats'">
-          <div class="stats-grid">
-            <div class="stat-card" v-for="s in char.stats" :key="s.label">
-              <div class="stat-card-title">{{ s.label }}</div>
-              <div class="stat-card-value">{{ s.value }}</div>
-              <div v-if="s.sub" class="stat-card-sub">{{ s.sub }}</div>
-            </div>
-          </div>
-          <div class="two-col">
-            <div class="info-card">
-              <div class="section-title" style="margin-bottom:11px;">아케인 / 어센틱</div>
-              <div class="info-row" v-for="r in char.arcane" :key="r.k">
-                <span class="info-key">{{ r.k }}</span><span class="info-val highlight">{{ r.v }}</span>
+          <div class="stats-equip-layout">
+            <!-- 왼쪽: 전투력 + 심볼 + 어빌리티 -->
+            <div class="stats-left-panel">
+              <!-- 전투력 카드 -->
+              <div class="combat-power-card">
+                <div class="combat-power-label">⚔️ 최종 전투력</div>
+                <div class="combat-power-value">{{ char.stats[0].value }}</div>
+                <div class="combat-power-sub">{{ char.stats[0].sub }}</div>
+              </div>
+
+              <!-- 아케인 / 어센틱 심볼 -->
+              <div class="info-card">
+                <div class="section-title" style="margin-bottom:11px;">🔮 아케인 / 어센틱</div>
+                <div class="info-row" v-for="r in char.arcane" :key="r.k">
+                  <span class="info-key">{{ r.k }}</span><span class="info-val highlight">{{ r.v }}</span>
+                </div>
+              </div>
+
+              <!-- 어빌리티 -->
+              <div class="info-card">
+                <div class="section-title" style="margin-bottom:11px;">✨ 어빌리티</div>
+                <div class="info-row" v-for="ab in char.abilities" :key="ab">
+                  <span style="font-size:.82rem;">{{ ab }}</span>
+                </div>
               </div>
             </div>
-            <div class="info-card">
-              <div class="section-title" style="margin-bottom:11px;">어빌리티</div>
-              <div class="info-row" v-for="ab in char.abilities" :key="ab">
-                <span style="font-size:.82rem;">{{ ab }}</span>
+
+            <!-- 오른쪽: 착용 장비 (세로로 길게) -->
+            <div class="equip-right-panel">
+              <div class="section-title" style="margin-bottom:13px;">🎽 착용 장비</div>
+              <div class="equip-grid-compact">
+                <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char.equips" :key="eq.slot">
+                  <div class="equip-slot">{{ eq.slot }}</div>
+                  <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
+                  <div class="equip-stars" v-if="eq.stars > 0">
+                    <span v-for="i in 22" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
+                  </div>
+                  <div v-if="eq.potential" class="equip-potential">
+                    <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
