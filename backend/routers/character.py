@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 
 from core.config import NEXON_API_KEY, NEXON_HTTP_TRUST_ENV
-from schemas.character_all import ArcaneRow, CharacterResponse, EquipUi, StatLine, UnionUi
+from schemas.character_all import ArcaneRow, CharacterResponse, EquipUi, UnionUi
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
@@ -340,13 +340,13 @@ async def get_character_info(nickname: str):
 
     combat = _combat_power_raw(stat)
     disp = _fmt_combat_display(combat) if combat else ""
-    stats = [StatLine(label="전투력", value=disp or "-", sub="최종 전투력")]
 
     rank_n = _rank_int(rank_data)
     pop_n = pop_data.get("popularity")
     union_n = union_data.get("union_level")
     if union_n is None:
         union_n = union_data.get("unionLevel")
+    union_level_str = _fmt_thousands(union_n) if union_n is not None else None
 
     return CharacterResponse(
         imageUrl=basic.get("character_image"),
@@ -356,12 +356,13 @@ async def get_character_info(nickname: str):
         job=basic.get("character_class"),
         ranking=_fmt_thousands(rank_n),
         popularity=_fmt_thousands(pop_n) if pop_n is not None else None,
-        union=UnionUi(
-            level=_fmt_thousands(union_n) if union_n is not None else None,
-        ),
+        union=UnionUi(level=union_level_str),
+        unionLevel=union_level_str,
         guild=basic.get("character_guild_name") or "",
         expPercent=_parse_exp_pct(basic.get("character_exp_rate")),
-        stats=stats,
+        combatPower=disp or None,
+        arcaneForce=f"{af:,}" if af is not None else None,
+        authenticForce=f"{tf:,}" if tf is not None else None,
         arcane=arcane,
         abilities=abilities,
         equips=equips,

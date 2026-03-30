@@ -11,13 +11,6 @@ class ArcaneRow(BaseModel):
     v: str
 
 
-class StatLine(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    label: str
-    value: str
-    sub: str
-
-
 class EquipUi(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -48,9 +41,12 @@ class CharacterResponse(BaseModel):
     ranking: str | None = None
     popularity: str | None = None
     union: UnionUi = Field(default_factory=UnionUi)
+    unionLevel: str | None = None
     guild: str | None = None
     expPercent: float | None = None
-    stats: list[StatLine] = Field(default_factory=list)
+    combatPower: str | None = None
+    arcaneForce: str | None = None
+    authenticForce: str | None = None
     arcane: list[ArcaneRow] = Field(default_factory=list)
     abilities: list[str] = Field(default_factory=list)
     equips: list[EquipUi] = Field(default_factory=list)
