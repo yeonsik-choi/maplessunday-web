@@ -1,216 +1,368 @@
 import asyncio
+import logging
+import re
 
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from core.config import NEXON_API_KEY
-from schemas.character_all import CharacterAllResponse
+from core.config import NEXON_API_KEY, NEXON_HTTP_TRUST_ENV
+from schemas.character_all import ArcaneRow, CharacterResponse, EquipUi, StatLine, UnionUi
 from services.nexon_api import (
+    fetch_character_ability,
+    fetch_character_basic,
+    fetch_character_popularity,
+    fetch_character_stat,
+    fetch_item_equipment,
+    fetch_overall_ranking,
+    fetch_union,
     get_ocid,
     get_yesterday,
-    fetch_character_basic,
-    fetch_character_stat,
-    fetch_character_popularity,
-    fetch_overall_ranking,
-    fetch_item_equipment,
-    fetch_union,
-    fetch_union_raider,
-    fetch_symbol_equipment,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["캐릭터"])
 
-# 문서 기준 장비 필드만 통과 (넥슨 원본 키 이름)
-_EQUIPMENT_KEYS = frozenset({
-    "item_equipment_slot",
-    "item_name",
-    "item_icon",
-    "item_description",
-    "item_shape_name",
-    "item_shape_icon",
-    "item_gender",
-    "date_expire",
-    "starforce",
-    "starforce_scroll_flag",
-    "scroll_upgrade",
-    "scroll_upgradeable_count",
-    "scroll_resilience_count",
-    "golden_hammer_flag",
-    "cuttable_count",
-    "item_total_option",
-    "item_base_option",
-    "item_add_option",
-    "item_etc_option",
-    "item_starforce_option",
-    "item_exceptional_option",
-    "potential_option_grade",
-    "potential_option_1",
-    "potential_option_2",
-    "potential_option_3",
-    "additional_potential_option_grade",
-    "additional_potential_option_1",
-    "additional_potential_option_2",
-    "additional_potential_option_3",
-    "soul_name",
-    "soul_option",
-    "special_ring_level",
-    "equipment_level_increase",
-})
+_NEXON_TIMEOUT_SEC = 30.0
 
-_SYMBOL_KEYS = frozenset({
-    "symbol_name",
-    "symbol_icon",
-    "symbol_force",
-    "symbol_level",
-    "symbol_str",
-    "symbol_dex",
-    "symbol_int",
-    "symbol_luk",
-    "symbol_hp",
-    "symbol_growth_count",
-    "symbol_require_growth_count",
-})
+# equips에 포함·정렬에 쓰는 슬롯만 (훈장·포켓·뱃지 등 제외)
+_EQUIP_SLOTS: tuple[str, ...] = (
+    "무기",
+    "보조무기",
+    "엠블렘",
+    "모자",
+    "얼굴장식",
+    "눈장식",
+    "귀고리",
+    "상의",
+    "하의",
+    "장갑",
+    "망토",
+    "신발",
+    "반지1",
+    "반지2",
+    "반지3",
+    "반지4",
+    "펜던트",
+    "펜던트2",
+    "벨트",
+    "어깨장식",
+)
+_EQUIP_ORDER = {s: i for i, s in enumerate(_EQUIP_SLOTS)}
+
+_ARCANE_NAMES = ("아케인포스", "아케인 포스")
+_AUTH_NAMES = ("어센틱포스", "어센틱 포스")
 
 
-def combat_power_from_stat(stat: dict):
-    for s in stat.get("final_stat") or []:
-        if isinstance(s, dict) and s.get("stat_name") == "전투력":
-            return s.get("stat_value")
-    return None
+def _equip_slot(item: dict) -> str:
+    s = item.get("item_equipment_slot") or item.get("itemEquipmentSlot")
+    return str(s).strip() if s is not None else ""
 
 
-def filter_equipment_item(item: dict) -> dict:
-    return {k: item[k] for k in _EQUIPMENT_KEYS if k in item}
+def _equip_rows(payload: dict) -> list:
+    rows = payload.get("item_equipment") or payload.get("itemEquipment")
+    return rows if isinstance(rows, list) else []
 
 
-def equipment_items_filtered(equip_data: dict) -> list[dict]:
-    raw = equip_data.get("item_equipment") or []
-    return [filter_equipment_item(dict(x)) for x in raw if isinstance(x, dict)]
-
-
-def filter_symbol_row(row: dict) -> dict:
-    return {k: row[k] for k in _SYMBOL_KEYS if k in row}
-
-
-def symbol_rows_filtered(symbol_data: dict) -> list[dict]:
-    raw = symbol_data.get("symbol") or []
-    return [filter_symbol_row(dict(x)) for x in raw if isinstance(x, dict)]
-
-
-def extract_overall_rank(
-    ranking_payload: dict,
-    character_name: str | None,
-    world_name: str | None,
-) -> int | None:
-    if not ranking_payload or not character_name or not world_name:
+def _parse_int(raw) -> int | None:
+    if raw is None:
         return None
-    for row in ranking_payload.get("ranking") or []:
-        if (
-            row.get("character_name") == character_name
-            and row.get("world_name") == world_name
-        ):
-            return row.get("ranking")
+    s = str(raw).replace(",", "").strip()
+    if not s:
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
+def _final_stat_int(stat: dict, names: tuple[str, ...]) -> int | None:
+    for row in stat.get("final_stat") or []:
+        if isinstance(row, dict) and row.get("stat_name") in names:
+            return _parse_int(row.get("stat_value"))
     return None
 
 
-async def fetch_three_overall_ranks(
-    client: httpx.AsyncClient,
-    ocid: str,
-    yesterday: str,
-    basic: dict,
-) -> tuple[int | None, int | None, int | None]:
-    w = basic.get("world_name")
-    c = basic.get("character_class")
-    name = basic.get("character_name")
-
-    async def safe_rank(world_name, class_name):
-        try:
-            return await fetch_overall_ranking(
-                client, ocid, yesterday, world_name=world_name, class_name=class_name
-            )
-        except HTTPException:
-            return {}
-
-    overall_d, server_d, class_d = await asyncio.gather(
-        safe_rank(None, None),
-        safe_rank(w, None),
-        safe_rank(w, c),
-    )
-
-    overall_r = extract_overall_rank(overall_d, name, w)
-    server_r = extract_overall_rank(server_d, name, w)
-    class_r = extract_overall_rank(class_d, name, w)
-    return overall_r, server_r, class_r
+def _combat_power_raw(stat: dict) -> str | None:
+    for row in stat.get("final_stat") or []:
+        if isinstance(row, dict) and row.get("stat_name") == "전투력":
+            return row.get("stat_value")
+    return None
 
 
-def check_api_key():
+def _ability_lines(data: dict) -> tuple[str | None, str | None, str | None]:
+    rows = data.get("ability_info") or []
+    out: list[str | None] = [None, None, None]
+    for i in range(3):
+        if i < len(rows) and isinstance(rows[i], dict):
+            v = rows[i].get("ability_value")
+            if v is not None:
+                out[i] = str(v)
+    return out[0], out[1], out[2]
+
+
+def _rank_int(payload: dict) -> int | None:
+    rows = payload.get("ranking") or []
+    if not rows or not isinstance(rows[0], dict):
+        return None
+    row = rows[0]
+    raw = row.get("ranking") if row.get("ranking") is not None else row.get("rank")
+    if raw is None:
+        return None
+    try:
+        return int(str(raw).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _require_key():
     if not NEXON_API_KEY:
         raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
 
 
-@router.get("/all", response_model=CharacterAllResponse)
-async def get_all_info(nickname: str):
-    """닉네임으로 문서에 정의된 필드만 한 번에 조회."""
-    check_api_key()
+def _coerce_level(raw) -> int | None:
+    if raw is None:
+        return None
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, float):
+        return int(raw)
+    s = str(raw).replace(",", "").strip()
+    if not s:
+        return None
+    try:
+        return int(s)
+    except ValueError:
+        return None
+
+
+def _fmt_thousands(n) -> str | None:
+    if n is None:
+        return None
+    try:
+        return f"{int(n):,}"
+    except (TypeError, ValueError):
+        t = str(n).strip()
+        return t or None
+
+
+def _fmt_combat_display(raw: str | None) -> str:
+    if not raw:
+        return ""
+    s = str(raw).strip()
+    if not s:
+        return ""
+    if "," in s:
+        return s
+    digits = re.sub(r"[^\d]", "", s)
+    if not digits:
+        return s
+    try:
+        return f"{int(digits):,}"
+    except ValueError:
+        return s
+
+
+def _parse_exp_pct(raw) -> float | None:
+    if raw is None:
+        return None
+    s = str(raw).strip().replace("%", "").replace(",", "")
+    if not s:
+        return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _parse_stars(raw) -> int:
+    if raw is None:
+        return 0
+    s = str(raw).strip().replace(",", "")
+    if not s:
+        return 0
+    m = re.match(r"^(\d+)", s)
+    return min(int(m.group(1)), 25) if m else 0
+
+
+def _grade_class(raw) -> str | None:
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    exact = {
+        "레어": "rare",
+        "에픽": "epic",
+        "유니크": "unique",
+        "레전드리": "legendary",
+        "rare": "rare",
+        "epic": "epic",
+        "unique": "unique",
+        "legendary": "legendary",
+    }
+    if s in exact:
+        return exact[s]
+    low = s.lower()
+    if low in exact:
+        return exact[low]
+    if "legend" in low or "레전" in s:
+        return "legendary"
+    if "unique" in low or "유니크" in s:
+        return "unique"
+    if "epic" in low or "에픽" in s:
+        return "epic"
+    if "rare" in low or "레어" in s:
+        return "rare"
+    return None
+
+
+def _item_grade(item: dict) -> str | None:
+    for key in ("potential_option_grade", "potentialOptionGrade"):
+        g = _grade_class(item.get(key))
+        if g:
+            return g
+    return None
+
+
+def _item_potential(item: dict) -> list[str]:
+    out: list[str] = []
+    for sk, ck in (
+        ("potential_option_1", "potentialOption1"),
+        ("potential_option_2", "potentialOption2"),
+        ("potential_option_3", "potentialOption3"),
+    ):
+        v = item.get(sk)
+        if v is None:
+            v = item.get(ck)
+        if v is None:
+            continue
+        t = str(v).strip()
+        if t:
+            out.append(t)
+    return out
+
+
+def _to_equip(item: dict) -> EquipUi:
+    name = item.get("item_name")
+    if name is None:
+        name = item.get("itemName")
+    pots = _item_potential(item)
+    return EquipUi(
+        slot=_equip_slot(item) or None,
+        name=name,
+        stars=_parse_stars(item.get("starforce")),
+        grade=_item_grade(item),
+        potential=pots if pots else None,
+    )
+
+
+@router.get(
+    "/character",
+    response_model=CharacterResponse,
+    responses={
+        404: {"description": "해당 닉네임 캐릭터 없음"},
+        429: {"description": "넥슨 API rate limit"},
+        502: {"description": "넥슨 API HTTP 오류 또는 네트워크/프록시 연결 실패"},
+    },
+)
+async def get_character_info(nickname: str):
+    _require_key()
     yesterday = get_yesterday()
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        ocid = await get_ocid(client, nickname)
-
-        results = await asyncio.gather(
-            fetch_character_basic(client, ocid, yesterday),
-            fetch_character_stat(client, ocid, yesterday),
-            fetch_item_equipment(client, ocid, yesterday),
-            fetch_union(client, ocid, yesterday),
-            fetch_union_raider(client, ocid, yesterday),
-            fetch_symbol_equipment(client, ocid, yesterday),
-            fetch_character_popularity(client, ocid, yesterday),
-            return_exceptions=True,
-        )
-
-        basic = results[0] if not isinstance(results[0], Exception) else {}
-        stat = results[1] if not isinstance(results[1], Exception) else {}
-        equip_data = results[2] if not isinstance(results[2], Exception) else {}
-        union_data = results[3] if not isinstance(results[3], Exception) else {}
-        raider_data = results[4] if not isinstance(results[4], Exception) else {}
-        symbol_data = results[5] if not isinstance(results[5], Exception) else {}
-        pop_raw = results[6] if not isinstance(results[6], Exception) else {}
-
-        if basic:
-            overall_rank_val, server_rank_val, class_rank_val = (
-                await fetch_three_overall_ranks(client, ocid, yesterday, basic)
+    try:
+        async with httpx.AsyncClient(
+            timeout=_NEXON_TIMEOUT_SEC,
+            trust_env=NEXON_HTTP_TRUST_ENV,
+        ) as client:
+            ocid = await get_ocid(client, nickname)
+            batch1 = await asyncio.gather(
+                fetch_character_basic(client, ocid, yesterday),
+                fetch_character_stat(client, ocid, yesterday),
+                fetch_character_ability(client, ocid, yesterday),
+                return_exceptions=True,
             )
-        else:
-            overall_rank_val = server_rank_val = class_rank_val = None
+            await asyncio.sleep(1.0)
+            batch2 = await asyncio.gather(
+                fetch_item_equipment(client, ocid, yesterday),
+                fetch_character_popularity(client, ocid, yesterday),
+                fetch_union(client, ocid, yesterday),
+                fetch_overall_ranking(client, ocid, yesterday),
+                return_exceptions=True,
+            )
+            results = list(batch1) + list(batch2)
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "넥슨 오픈 API에 연결하지 못했습니다. "
+                f"({type(e).__name__}: {e}) "
+                "VPN·회사 프록시·HTTP_PROXY 환경이면 비활성화 후 다시 시도하거나, "
+                "방화벽에서 open.api.nexon.com 허용을 확인하세요."
+            ),
+        ) from e
 
-    popularity_val = None
-    if isinstance(pop_raw, dict) and pop_raw:
-        popularity_val = pop_raw.get("popularity")
+    for i, r in enumerate(results):
+        if isinstance(r, Exception):
+            logger.warning("nexon fetch failed idx=%s: %s", i, r)
 
-    items = equipment_items_filtered(equip_data)
-    symbols = symbol_rows_filtered(symbol_data)
+    def pick(i: int) -> dict:
+        r = results[i]
+        return r if not isinstance(r, Exception) else {}
 
-    return {
-        "character_image": basic.get("character_image"),
-        "character_name": basic.get("character_name"),
-        "world_name": basic.get("world_name"),
-        "character_class": basic.get("character_class"),
-        "character_guild_name": basic.get("character_guild_name"),
-        "character_level": basic.get("character_level"),
-        "character_exp_rate": basic.get("character_exp_rate"),
-        "date": basic.get("date"),
-        "popularity": popularity_val,
-        "combat_power": combat_power_from_stat(stat),
-        "overall_rank": overall_rank_val,
-        "server_rank": server_rank_val,
-        "class_rank": class_rank_val,
-        "equipment": {"total_items": len(items), "items": items},
-        "union": {
-            "union_level": union_data.get("union_level"),
-            "union_grade": union_data.get("union_grade"),
-            "union_artifact_level": union_data.get("union_artifact_level"),
-            "union_raider_stats": raider_data.get("union_raider_stat"),
-            "union_occupied_stats": raider_data.get("union_occupied_stat"),
-        },
-        "symbols": {"total": len(symbols), "list": symbols},
-    }
+    basic = pick(0)
+    stat = pick(1)
+    ability_data = pick(2)
+    equip_data = pick(3)
+    pop_data = pick(4)
+    union_data = pick(5)
+    rank_data = pick(6)
+
+    rows = [
+        row
+        for row in _equip_rows(equip_data)
+        if isinstance(row, dict) and _equip_slot(row) in _EQUIP_ORDER
+    ]
+    rows.sort(key=lambda r: _EQUIP_ORDER[_equip_slot(r)])
+    equips = [_to_equip(r) for r in rows]
+
+    af = _final_stat_int(stat, _ARCANE_NAMES)
+    tf = _final_stat_int(stat, _AUTH_NAMES)
+    ab1, ab2, ab3 = _ability_lines(ability_data)
+    abilities = [ab1 or "", ab2 or "", ab3 or ""]
+
+    arcane: list[ArcaneRow] = []
+    if af is not None:
+        arcane.append(ArcaneRow(k="아케인포스", v=f"{af:,}"))
+    if tf is not None:
+        arcane.append(ArcaneRow(k="어센틱포스", v=f"{tf:,}"))
+
+    combat = _combat_power_raw(stat)
+    disp = _fmt_combat_display(combat) if combat else ""
+    stats = [StatLine(label="전투력", value=disp or "-", sub="최종 전투력")]
+
+    rank_n = _rank_int(rank_data)
+    pop_n = pop_data.get("popularity")
+    union_n = union_data.get("union_level")
+    if union_n is None:
+        union_n = union_data.get("unionLevel")
+
+    return CharacterResponse(
+        imageUrl=basic.get("character_image"),
+        name=basic.get("character_name"),
+        level=_coerce_level(basic.get("character_level")),
+        world=basic.get("world_name"),
+        job=basic.get("character_class"),
+        ranking=_fmt_thousands(rank_n),
+        popularity=_fmt_thousands(pop_n) if pop_n is not None else None,
+        union=UnionUi(
+            level=_fmt_thousands(union_n) if union_n is not None else None,
+        ),
+        guild=basic.get("character_guild_name") or "",
+        expPercent=_parse_exp_pct(basic.get("character_exp_rate")),
+        stats=stats,
+        arcane=arcane,
+        abilities=abilities,
+        equips=equips,
+    )
