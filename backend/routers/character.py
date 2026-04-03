@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -281,6 +282,39 @@ def _subdoc(item: dict, snake: str, camel: str) -> dict | None:
     return v if isinstance(v, dict) else None
 
 
+def _snake_to_camel_key(key: str) -> str:
+    """snake_case 키만 camelCase로. 언더스코어 없으면 그대로(이미 camelCase인 경우)."""
+    if not key or not isinstance(key, str):
+        return key
+    if "_" not in key:
+        return key
+    parts = [p for p in key.split("_") if p != ""]
+    if not parts:
+        return key
+    return parts[0].lower() + "".join(
+        (p[:1].upper() + p[1:].lower()) if p else "" for p in parts[1:]
+    )
+
+
+def _deep_camelize_keys(obj: Any) -> Any:
+    """dict/list 중첩 구조의 dict 키를 재귀적으로 camelCase로 통일."""
+    if isinstance(obj, dict):
+        return {
+            _snake_to_camel_key(k) if isinstance(k, str) else k: _deep_camelize_keys(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_deep_camelize_keys(x) for x in obj]
+    return obj
+
+
+def _camel_equip_subdoc(item: dict, snake: str, camel: str) -> dict[str, Any] | None:
+    d = _subdoc(item, snake, camel)
+    if d is None:
+        return None
+    return _deep_camelize_keys(d)
+
+
 def _item_str_top(item: dict, snake: str, camel: str) -> str | None:
     for k in (snake, camel):
         v = item.get(k)
@@ -349,6 +383,8 @@ def _to_equip(item: dict) -> EquipUi:
     total_opt = _total_option_ui(item)
     apots = add_pots if add_pots else None
 
+    base_option_cam = _deep_camelize_keys(base_block) if base_block else None
+
     return EquipUi(
         slot=_equip_slot(item) or None,
         name=name,
@@ -361,10 +397,10 @@ def _to_equip(item: dict) -> EquipUi:
         additional_grade=_item_additional_grade(item),
         additional_potential=apots,
         total_option=total_opt,
-        base_option=base_block,
-        add_option=_subdoc(item, "item_add_option", "itemAddOption"),
-        etc_option=_subdoc(item, "item_etc_option", "itemEtcOption"),
-        starforce_option=_subdoc(
+        base_option=base_option_cam,
+        add_option=_camel_equip_subdoc(item, "item_add_option", "itemAddOption"),
+        etc_option=_camel_equip_subdoc(item, "item_etc_option", "itemEtcOption"),
+        starforce_option=_camel_equip_subdoc(
             item, "item_starforce_option", "itemStarforceOption"
         ),
         scroll_upgradeable_count=_item_str_top(
