@@ -6,7 +6,13 @@ import httpx
 from fastapi import APIRouter, HTTPException
 
 from core.config import NEXON_API_KEY, NEXON_HTTP_TRUST_ENV
-from schemas.character_all import ArcaneRow, CharacterResponse, EquipUi, UnionUi
+from schemas.character_all import (
+    ArcaneRow,
+    CharacterResponse,
+    EquipTotalOptionUi,
+    EquipUi,
+    UnionUi,
+)
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
@@ -224,6 +230,14 @@ def _item_grade(item: dict) -> str | None:
     return None
 
 
+def _item_additional_grade(item: dict) -> str | None:
+    for key in ("additional_potential_option_grade", "additionalPotentialOptionGrade"):
+        g = _grade_class(item.get(key))
+        if g:
+            return g
+    return None
+
+
 def _item_potential(item: dict) -> list[str]:
     out: list[str] = []
     for sk, ck in (
@@ -242,17 +256,127 @@ def _item_potential(item: dict) -> list[str]:
     return out
 
 
+def _item_additional_potential(item: dict) -> list[str]:
+    out: list[str] = []
+    for sk, ck in (
+        ("additional_potential_option_1", "additionalPotentialOption1"),
+        ("additional_potential_option_2", "additionalPotentialOption2"),
+        ("additional_potential_option_3", "additionalPotentialOption3"),
+    ):
+        v = item.get(sk)
+        if v is None:
+            v = item.get(ck)
+        if v is None:
+            continue
+        t = str(v).strip()
+        if t:
+            out.append(t)
+    return out
+
+
+def _subdoc(item: dict, snake: str, camel: str) -> dict | None:
+    v = item.get(snake)
+    if v is None:
+        v = item.get(camel)
+    return v if isinstance(v, dict) else None
+
+
+def _item_str_top(item: dict, snake: str, camel: str) -> str | None:
+    for k in (snake, camel):
+        v = item.get(k)
+        if v is not None:
+            t = str(v).strip()
+            if t:
+                return t
+    return None
+
+
+def _nested_str(parent: dict | None, snake: str, camel: str) -> str | None:
+    if not parent:
+        return None
+    for k in (snake, camel):
+        v = parent.get(k)
+        if v is not None:
+            t = str(v).strip()
+            if t:
+                return t
+    return None
+
+
+def _total_option_ui(item: dict) -> EquipTotalOptionUi | None:
+    raw = _subdoc(item, "item_total_option", "itemTotalOption")
+    if not raw:
+        return None
+
+    def g(sn: str, *cams: str) -> str | None:
+        for k in (sn,) + cams:
+            v = raw.get(k)
+            if v is not None:
+                t = str(v).strip()
+                if t:
+                    return t
+        return None
+
+    ui = EquipTotalOptionUi(
+        str_bonus=g("str", "STR"),
+        dex=g("dex", "DEX"),
+        int_bonus=g("int", "INT"),
+        luk=g("luk", "LUK"),
+        max_hp=g("max_hp", "maxHp"),
+        max_mp=g("max_mp", "maxMp"),
+        attack_power=g("attack_power", "attackPower"),
+        magic_power=g("magic_power", "magicPower"),
+        armor=g("armor"),
+        ignore_monster_armor=g("ignore_monster_armor", "ignoreMonsterArmor"),
+        all_stat=g("all_stat", "allStat"),
+        boss_damage=g("boss_damage", "bossDamage"),
+    )
+    if not ui.model_dump(exclude_none=True):
+        return None
+    return ui
+
+
 def _to_equip(item: dict) -> EquipUi:
     name = item.get("item_name")
     if name is None:
         name = item.get("itemName")
     pots = _item_potential(item)
+    add_pots = _item_additional_potential(item)
+    base_block = _subdoc(item, "item_base_option", "itemBaseOption")
+    base_lv = _nested_str(
+        base_block, "base_equipment_level", "baseEquipmentLevel"
+    )
+    total_opt = _total_option_ui(item)
+    apots = add_pots if add_pots else None
+
     return EquipUi(
         slot=_equip_slot(item) or None,
         name=name,
         stars=_parse_stars(item.get("starforce")),
         grade=_item_grade(item),
         potential=pots if pots else None,
+        item_icon=_item_str_top(item, "item_icon", "itemIcon"),
+        base_equipment_level=base_lv,
+        scroll_upgrade=_item_str_top(item, "scroll_upgrade", "scrollUpgrade"),
+        additional_grade=_item_additional_grade(item),
+        additional_potential=apots,
+        total_option=total_opt,
+        base_option=base_block,
+        add_option=_subdoc(item, "item_add_option", "itemAddOption"),
+        etc_option=_subdoc(item, "item_etc_option", "itemEtcOption"),
+        starforce_option=_subdoc(
+            item, "item_starforce_option", "itemStarforceOption"
+        ),
+        scroll_upgradeable_count=_item_str_top(
+            item, "scroll_upgradeable_count", "scrollUpgradeableCount"
+        ),
+        scroll_resilience_count=_item_str_top(
+            item, "scroll_resilience_count", "scrollResilienceCount"
+        ),
+        cuttable_count=_item_str_top(item, "cuttable_count", "cuttableCount"),
+        soul_name=_item_str_top(item, "soul_name", "soulName"),
+        soul_option=_item_str_top(item, "soul_option", "soulOption"),
+        shape_name=_item_str_top(item, "item_shape_name", "itemShapeName"),
     )
 
 

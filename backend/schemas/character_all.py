@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +11,27 @@ class ArcaneRow(BaseModel):
     v: str
 
 
+class EquipTotalOptionUi(BaseModel):
+    """item_total_option — 스탯 영역 (표시용 문자열 그대로)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    str_bonus: str | None = Field(default=None, serialization_alias="str")
+    dex: str | None = None
+    int_bonus: str | None = Field(default=None, serialization_alias="int")
+    luk: str | None = None
+    max_hp: str | None = Field(default=None, serialization_alias="maxHp")
+    max_mp: str | None = Field(default=None, serialization_alias="maxMp")
+    attack_power: str | None = Field(default=None, serialization_alias="attackPower")
+    magic_power: str | None = Field(default=None, serialization_alias="magicPower")
+    armor: str | None = None
+    ignore_monster_armor: str | None = Field(
+        default=None, serialization_alias="ignoreMonsterArmor"
+    )
+    all_stat: str | None = Field(default=None, serialization_alias="allStat")
+    boss_damage: str | None = Field(default=None, serialization_alias="bossDamage")
+
+
 class EquipUi(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -19,9 +40,48 @@ class EquipUi(BaseModel):
     stars: int = 0
     grade: EquipGrade | None = Field(
         default=None,
-        description="잠재 등급 → rare|epic|unique|legendary, 없으면 null",
+        description="메인 잠재 등급 → rare|epic|unique|legendary, 없으면 null",
     )
     potential: list[str] | None = None
+
+    item_icon: str | None = Field(default=None, serialization_alias="itemIcon")
+    base_equipment_level: str | None = Field(
+        default=None, serialization_alias="baseEquipmentLevel"
+    )
+    scroll_upgrade: str | None = Field(default=None, serialization_alias="scrollUpgrade")
+    additional_grade: EquipGrade | None = Field(
+        default=None, serialization_alias="additionalGrade"
+    )
+    additional_potential: list[str] | None = Field(
+        default=None, serialization_alias="additionalPotential"
+    )
+
+    total_option: EquipTotalOptionUi | None = Field(
+        default=None, serialization_alias="totalOption"
+    )
+    base_option: dict[str, Any] | None = Field(
+        default=None, serialization_alias="baseOption"
+    )
+    add_option: dict[str, Any] | None = Field(
+        default=None, serialization_alias="addOption"
+    )
+    etc_option: dict[str, Any] | None = Field(
+        default=None, serialization_alias="etcOption"
+    )
+    starforce_option: dict[str, Any] | None = Field(
+        default=None, serialization_alias="starforceOption"
+    )
+
+    scroll_upgradeable_count: str | None = Field(
+        default=None, serialization_alias="scrollUpgradeableCount"
+    )
+    scroll_resilience_count: str | None = Field(
+        default=None, serialization_alias="scrollResilienceCount"
+    )
+    cuttable_count: str | None = Field(default=None, serialization_alias="cuttableCount")
+    soul_name: str | None = Field(default=None, serialization_alias="soulName")
+    soul_option: str | None = Field(default=None, serialization_alias="soulOption")
+    shape_name: str | None = Field(default=None, serialization_alias="shapeName")
 
 
 class UnionUi(BaseModel):
