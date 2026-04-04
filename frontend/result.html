@@ -132,6 +132,7 @@
     .combat-power-card { background: linear-gradient(135deg, rgba(255,107,0,0.12), rgba(255,215,0,0.08)); border: 1.5px solid rgba(255,165,0,0.4); border-radius: 16px; padding: 20px; box-shadow: 0 6px 20px rgba(255,107,0,0.1); }
     .combat-power-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: rgba(92,46,0,0.55); margin-bottom: 4px; letter-spacing: 0.8px; }
     .combat-power-value { font-family: 'Black Han Sans', sans-serif; font-size: 2rem; background: linear-gradient(135deg, #FF6B00, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; }
+    .combat-power-sub { font-size: 0.72rem; color: rgba(92,46,0,0.5); margin-top: 4px; font-weight: 500; }
     .stats-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
     .mini-stat { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,165,0,0.2); border-radius: 10px; padding: 9px 12px; }
     .mini-stat-label { font-size: 0.64rem; font-weight: 800; color: rgba(92,46,0,0.5); margin-bottom: 2px; }
@@ -275,7 +276,8 @@
               <!-- 전투력 카드 -->
               <div class="combat-power-card">
                 <div class="combat-power-label">⚔️ 최종 전투력</div>
-                <div class="combat-power-value">{{ char.combatPower || '-' }}</div>
+                <div class="combat-power-value">{{ char.stats[0].value }}</div>
+                <div class="combat-power-sub">{{ char.stats[0].sub }}</div>
               </div>
 
               <!-- 아케인 / 어센틱 심볼 -->
@@ -433,7 +435,16 @@ createApp({
         popularity: (Math.floor(Math.random() * 5000) - 100).toLocaleString(), // 인기도 추가
         expPercent: Math.floor(Math.random()*100),
         imageUrl: `https://avatar.maplestory.nexon.com/Character/${encodeURIComponent(name)}`,
-        combatPower: (Math.floor(Math.random()*4000000)+8000000).toLocaleString(),
+        stats: [
+          { label:'전투력',      value:(Math.floor(Math.random()*4000000)+8000000).toLocaleString(), sub:'최종 전투력' },
+          { label:'보스 데미지', value:Math.floor(Math.random()*80+280)+'%',   sub:'보스 상대 추가 데미지' },
+          { label:'방어율 무시', value:Math.floor(Math.random()*10+88)+'%',    sub:'몬스터 방어율 무시' },
+          { label:'크리티컬',    value:Math.floor(Math.random()*5+95)+'%',     sub:'크리티컬 확률' },
+          { label:'크리 데미지', value:Math.floor(Math.random()*20+200)+'%',   sub:'크리티컬 데미지' },
+          { label:'최종 데미지', value:Math.floor(Math.random()*30+140)+'%',   sub:'최종 데미지 합산' },
+          { label:'스타포스',    value:Math.floor(Math.random()*20+200)+'개',  sub:'누적 스타포스' },
+          { label:'아이템 드랍', value:Math.floor(Math.random()*100+200)+'%',  sub:'아이템 드랍률' },
+        ],
         arcane: [
           { k:'아케인포스', v:(Math.floor(Math.random()*200)+800).toLocaleString() },
           { k:'어센틱포스', v:(Math.floor(Math.random()*100)+300).toLocaleString() },
