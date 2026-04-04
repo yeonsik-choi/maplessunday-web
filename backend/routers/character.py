@@ -12,7 +12,6 @@ from schemas.character_all import (
     CharacterResponse,
     EquipTotalOptionUi,
     EquipUi,
-    UnionUi,
 )
 from services.nexon_api import (
     fetch_character_ability,
@@ -206,9 +205,6 @@ def _parse_stars(raw) -> int:
 def _grade_class(raw) -> str | None:
     if raw is None:
         return None
-    s = str(raw).strip()
-    if not s:
-        return None
     exact = {
         "레어": "rare",
         "에픽": "epic",
@@ -219,20 +215,7 @@ def _grade_class(raw) -> str | None:
         "unique": "unique",
         "legendary": "legendary",
     }
-    if s in exact:
-        return exact[s]
-    low = s.lower()
-    if low in exact:
-        return exact[low]
-    if "legend" in low or "레전" in s:
-        return "legendary"
-    if "unique" in low or "유니크" in s:
-        return "unique"
-    if "epic" in low or "에픽" in s:
-        return "epic"
-    if "rare" in low or "레어" in s:
-        return "rare"
-    return None
+    return exact.get(str(raw).strip())
 
 
 def _item_grade(item: dict) -> str | None:
@@ -579,13 +562,10 @@ async def get_character_info(nickname: str):
         job=basic.get("character_class"),
         ranking=_fmt_thousands(rank_n),
         popularity=_fmt_thousands(pop_n) if pop_n is not None else None,
-        union=UnionUi(level=union_level_str),
         unionLevel=union_level_str,
         guild=basic.get("character_guild_name") or "",
         expPercent=_parse_exp_pct(basic.get("character_exp_rate")),
         combatPower=disp or None,
-        arcaneForce=f"{af:,}" if af is not None else None,
-        authenticForce=f"{tf:,}" if tf is not None else None,
         arcane=arcane,
         abilities=abilities,
         equips=equips,

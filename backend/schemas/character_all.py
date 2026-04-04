@@ -85,12 +85,6 @@ class EquipUi(BaseModel):
     has_moru: bool = Field(default=False, serialization_alias="hasMoru")
 
 
-class UnionUi(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-
-    level: str | None = None
-
-
 class CharacterResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -101,13 +95,10 @@ class CharacterResponse(BaseModel):
     job: str | None = None
     ranking: str | None = None
     popularity: str | None = None
-    union: UnionUi = Field(default_factory=UnionUi)
     unionLevel: str | None = None
     guild: str | None = None
     expPercent: float | None = None
     combatPower: str | None = None
-    arcaneForce: str | None = None
-    authenticForce: str | None = None
     arcane: list[ArcaneRow] = Field(default_factory=list)
     abilities: list[str] = Field(default_factory=list)
     equips: list[EquipUi] = Field(default_factory=list)
