@@ -12,24 +12,24 @@ class ArcaneRow(BaseModel):
 
 
 class EquipTotalOptionUi(BaseModel):
-    """item_total_option — 스탯 영역 (표시용 문자열 그대로)."""
+    """item_total_option — 스탯 수치(정수)."""
 
     model_config = ConfigDict(extra="ignore")
 
-    str_bonus: str | None = Field(default=None, serialization_alias="str")
-    dex: str | None = None
-    int_bonus: str | None = Field(default=None, serialization_alias="int")
-    luk: str | None = None
-    max_hp: str | None = Field(default=None, serialization_alias="maxHp")
-    max_mp: str | None = Field(default=None, serialization_alias="maxMp")
-    attack_power: str | None = Field(default=None, serialization_alias="attackPower")
-    magic_power: str | None = Field(default=None, serialization_alias="magicPower")
-    armor: str | None = None
-    ignore_monster_armor: str | None = Field(
+    str_bonus: int | None = Field(default=None, serialization_alias="str")
+    dex: int | None = None
+    int_bonus: int | None = Field(default=None, serialization_alias="int")
+    luk: int | None = None
+    max_hp: int | None = Field(default=None, serialization_alias="maxHp")
+    max_mp: int | None = Field(default=None, serialization_alias="maxMp")
+    attack_power: int | None = Field(default=None, serialization_alias="attackPower")
+    magic_power: int | None = Field(default=None, serialization_alias="magicPower")
+    armor: int | None = None
+    ignore_monster_armor: int | None = Field(
         default=None, serialization_alias="ignoreMonsterArmor"
     )
-    all_stat: str | None = Field(default=None, serialization_alias="allStat")
-    boss_damage: str | None = Field(default=None, serialization_alias="bossDamage")
+    all_stat: int | None = Field(default=None, serialization_alias="allStat")
+    boss_damage: int | None = Field(default=None, serialization_alias="bossDamage")
 
 
 class EquipUi(BaseModel):
@@ -45,10 +45,10 @@ class EquipUi(BaseModel):
     potential: list[str] | None = None
 
     item_icon: str | None = Field(default=None, serialization_alias="itemIcon")
-    base_equipment_level: str | None = Field(
+    base_equipment_level: int | None = Field(
         default=None, serialization_alias="baseEquipmentLevel"
     )
-    scroll_upgrade: str | None = Field(default=None, serialization_alias="scrollUpgrade")
+    scroll_upgrade: int | None = Field(default=None, serialization_alias="scrollUpgrade")
     additional_grade: EquipGrade | None = Field(
         default=None, serialization_alias="additionalGrade"
     )
@@ -72,16 +72,17 @@ class EquipUi(BaseModel):
         default=None, serialization_alias="starforceOption"
     )
 
-    scroll_upgradeable_count: str | None = Field(
+    scroll_upgradeable_count: int | None = Field(
         default=None, serialization_alias="scrollUpgradeableCount"
     )
-    scroll_resilience_count: str | None = Field(
+    scroll_resilience_count: int | None = Field(
         default=None, serialization_alias="scrollResilienceCount"
     )
-    cuttable_count: str | None = Field(default=None, serialization_alias="cuttableCount")
+    cuttable_count: int | None = Field(default=None, serialization_alias="cuttableCount")
     soul_name: str | None = Field(default=None, serialization_alias="soulName")
     soul_option: str | None = Field(default=None, serialization_alias="soulOption")
     shape_name: str | None = Field(default=None, serialization_alias="shapeName")
+    has_moru: bool = Field(default=False, serialization_alias="hasMoru")
 
 
 class UnionUi(BaseModel):

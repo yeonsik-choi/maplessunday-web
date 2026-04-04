@@ -82,6 +82,18 @@ def _parse_int(raw) -> int | None:
         return None
 
 
+def _equip_stat_int(v: Any) -> int | None:
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v)
+    return _parse_int(v)
+
+
 def _final_stat_int(stat: dict, names: tuple[str, ...]) -> int | None:
     for row in stat.get("final_stat") or []:
         if isinstance(row, dict) and row.get("stat_name") in names:
@@ -308,11 +320,65 @@ def _deep_camelize_keys(obj: Any) -> Any:
     return obj
 
 
+def _scalar_to_json_number(v: Any) -> Any:
+    """옵션 dict 리프: 전부 숫자인 문자열만 int/float로 변환."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, int):
+        return v
+    if isinstance(v, float):
+        return int(v) if v == int(v) else v
+    if isinstance(v, str):
+        t = v.strip().replace(",", "")
+        if not t:
+            return v
+        try:
+            if "." in t:
+                f = float(t)
+                return int(f) if f == int(f) else f
+            return int(t)
+        except (ValueError, OverflowError):
+            return v
+    return v
+
+
+def _deep_coerce_equip_numbers(obj: Any) -> Any:
+    if isinstance(obj, dict):
+        return {k: _deep_coerce_equip_numbers(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_deep_coerce_equip_numbers(x) for x in obj]
+    return _scalar_to_json_number(obj)
+
+
 def _camel_equip_subdoc(item: dict, snake: str, camel: str) -> dict[str, Any] | None:
     d = _subdoc(item, snake, camel)
     if d is None:
         return None
-    return _deep_camelize_keys(d)
+    return _deep_coerce_equip_numbers(_deep_camelize_keys(d))
+
+
+def _has_moru_shape(shape: str | None) -> bool:
+    if not shape:
+        return False
+    return (
+        "신비의 모루" in shape
+        or "모루에 의해" in shape
+        or ("외형" in shape and "합성" in shape)
+    )
+
+
+def _cuttable_count_ui(item: dict) -> int | None:
+    for k in ("cuttable_count", "cuttableCount"):
+        v = item.get(k)
+        if v is None:
+            continue
+        n = _equip_stat_int(v)
+        if n is None:
+            continue
+        if n == 255:
+            return None
+        return n
+    return None
 
 
 def _item_str_top(item: dict, snake: str, camel: str) -> str | None:
@@ -342,28 +408,27 @@ def _total_option_ui(item: dict) -> EquipTotalOptionUi | None:
     if not raw:
         return None
 
-    def g(sn: str, *cams: str) -> str | None:
+    def gi(sn: str, *cams: str) -> int | None:
         for k in (sn,) + cams:
             v = raw.get(k)
-            if v is not None:
-                t = str(v).strip()
-                if t:
-                    return t
+            n = _equip_stat_int(v)
+            if n is not None:
+                return n
         return None
 
     ui = EquipTotalOptionUi(
-        str_bonus=g("str", "STR"),
-        dex=g("dex", "DEX"),
-        int_bonus=g("int", "INT"),
-        luk=g("luk", "LUK"),
-        max_hp=g("max_hp", "maxHp"),
-        max_mp=g("max_mp", "maxMp"),
-        attack_power=g("attack_power", "attackPower"),
-        magic_power=g("magic_power", "magicPower"),
-        armor=g("armor"),
-        ignore_monster_armor=g("ignore_monster_armor", "ignoreMonsterArmor"),
-        all_stat=g("all_stat", "allStat"),
-        boss_damage=g("boss_damage", "bossDamage"),
+        str_bonus=gi("str", "STR"),
+        dex=gi("dex", "DEX"),
+        int_bonus=gi("int", "INT"),
+        luk=gi("luk", "LUK"),
+        max_hp=gi("max_hp", "maxHp"),
+        max_mp=gi("max_mp", "maxMp"),
+        attack_power=gi("attack_power", "attackPower"),
+        magic_power=gi("magic_power", "magicPower"),
+        armor=gi("armor"),
+        ignore_monster_armor=gi("ignore_monster_armor", "ignoreMonsterArmor"),
+        all_stat=gi("all_stat", "allStat"),
+        boss_damage=gi("boss_damage", "bossDamage"),
     )
     if not ui.model_dump(exclude_none=True):
         return None
@@ -377,13 +442,15 @@ def _to_equip(item: dict) -> EquipUi:
     pots = _item_potential(item)
     add_pots = _item_additional_potential(item)
     base_block = _subdoc(item, "item_base_option", "itemBaseOption")
-    base_lv = _nested_str(
-        base_block, "base_equipment_level", "baseEquipmentLevel"
-    )
     total_opt = _total_option_ui(item)
     apots = add_pots if add_pots else None
 
-    base_option_cam = _deep_camelize_keys(base_block) if base_block else None
+    base_option_cam = (
+        _deep_coerce_equip_numbers(_deep_camelize_keys(base_block))
+        if base_block
+        else None
+    )
+    shape_nm = _item_str_top(item, "item_shape_name", "itemShapeName")
 
     return EquipUi(
         slot=_equip_slot(item) or None,
@@ -392,8 +459,12 @@ def _to_equip(item: dict) -> EquipUi:
         grade=_item_grade(item),
         potential=pots if pots else None,
         item_icon=_item_str_top(item, "item_icon", "itemIcon"),
-        base_equipment_level=base_lv,
-        scroll_upgrade=_item_str_top(item, "scroll_upgrade", "scrollUpgrade"),
+        base_equipment_level=_equip_stat_int(
+            _nested_str(base_block, "base_equipment_level", "baseEquipmentLevel")
+        ),
+        scroll_upgrade=_parse_int(
+            _item_str_top(item, "scroll_upgrade", "scrollUpgrade")
+        ),
         additional_grade=_item_additional_grade(item),
         additional_potential=apots,
         total_option=total_opt,
@@ -403,16 +474,17 @@ def _to_equip(item: dict) -> EquipUi:
         starforce_option=_camel_equip_subdoc(
             item, "item_starforce_option", "itemStarforceOption"
         ),
-        scroll_upgradeable_count=_item_str_top(
-            item, "scroll_upgradeable_count", "scrollUpgradeableCount"
+        scroll_upgradeable_count=_parse_int(
+            _item_str_top(item, "scroll_upgradeable_count", "scrollUpgradeableCount")
         ),
-        scroll_resilience_count=_item_str_top(
-            item, "scroll_resilience_count", "scrollResilienceCount"
+        scroll_resilience_count=_parse_int(
+            _item_str_top(item, "scroll_resilience_count", "scrollResilienceCount")
         ),
-        cuttable_count=_item_str_top(item, "cuttable_count", "cuttableCount"),
+        cuttable_count=_cuttable_count_ui(item),
         soul_name=_item_str_top(item, "soul_name", "soulName"),
         soul_option=_item_str_top(item, "soul_option", "soulOption"),
-        shape_name=_item_str_top(item, "item_shape_name", "itemShapeName"),
+        shape_name=shape_nm,
+        has_moru=_has_moru_shape(shape_nm),
     )
 
 
