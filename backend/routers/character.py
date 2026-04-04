@@ -357,16 +357,6 @@ def _camel_equip_subdoc(item: dict, snake: str, camel: str) -> dict[str, Any] | 
     return _deep_coerce_equip_numbers(_deep_camelize_keys(d))
 
 
-def _has_moru_shape(shape: str | None) -> bool:
-    if not shape:
-        return False
-    return (
-        "신비의 모루" in shape
-        or "모루에 의해" in shape
-        or ("외형" in shape and "합성" in shape)
-    )
-
-
 def _cuttable_count_ui(item: dict) -> int | None:
     for k in ("cuttable_count", "cuttableCount"):
         v = item.get(k)
@@ -451,6 +441,7 @@ def _to_equip(item: dict) -> EquipUi:
         else None
     )
     shape_nm = _item_str_top(item, "item_shape_name", "itemShapeName")
+    has_moru = (shape_nm != name) if shape_nm and name else False
 
     return EquipUi(
         slot=_equip_slot(item) or None,
@@ -484,7 +475,7 @@ def _to_equip(item: dict) -> EquipUi:
         soul_name=_item_str_top(item, "soul_name", "soulName"),
         soul_option=_item_str_top(item, "soul_option", "soulOption"),
         shape_name=shape_nm,
-        has_moru=_has_moru_shape(shape_nm),
+        has_moru=has_moru,
     )
 
 
