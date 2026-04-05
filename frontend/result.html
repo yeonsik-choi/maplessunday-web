@@ -62,15 +62,13 @@
     .result-inner { max-width: 1200px; margin: 0 auto; }
     .back-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 18px; margin-bottom: 24px; background: #fff; border: 1.5px solid rgba(255,165,0,0.4); border-radius: 24px; color: rgba(92,46,0,0.7); font-family: 'Noto Sans KR', sans-serif; font-size: 0.84rem; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: all .2s ease; }
     .back-btn:hover { border-color: var(--maple-orange); color: var(--maple-orange); background: #FFFDF9; transform: translateY(-1px); }
-    .demo-banner { background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 10px; padding: 10px 16px; margin-bottom: 22px; font-size: 0.8rem; color: #D87A00; font-weight: 500; text-align: center; }
     .error-box { background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.4); border-radius: 10px; padding: 12px 18px; margin-top: 14px; text-align: center; color: #FF8080; font-size: 0.88rem; }
     
-    /* ── 캐릭터 헤더 (상세정보 추가) ── */
+    /* ── 캐릭터 헤더 ── */
     .char-header { display: flex; align-items: center; gap: 32px; background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,245,230,0.9)); border: 1px solid rgba(255,165,0,0.3); border-radius: 20px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(255,165,0,0.1); position: relative; overflow: hidden; }
     .char-header::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 30% 50%, rgba(255,107,0,0.06) 0%, transparent 60%); pointer-events:none; }
     .char-img-wrap { flex-shrink: 0; width: 140px; height: 160px; background: rgba(255,235,210,0.5); border-radius: 16px; border: 2px solid rgba(255,165,0,0.3); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .char-img-wrap img.char-avatar { image-rendering: pixelated; width: 110px; height: auto; filter: drop-shadow(0 4px 12px rgba(255,107,0,0.3));}
-    
+    .char-img-wrap img.char-avatar { image-rendering: pixelated; width: 400px; height: auto; filter: drop-shadow(0 4px 12px rgba(255,107,0,0.3));}
     
     .char-info { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; gap: 10px; }
     .char-name-row { display: flex; align-items: baseline; gap: 12px; }
@@ -81,7 +79,6 @@
     .badge { padding: 5px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
     .badge-world { background: rgba(52,152,219,0.15); border: 1px solid rgba(52,152,219,0.4); color: #2980B9; }
     .badge-job   { background: rgba(155,89,182,0.15); border: 1px solid rgba(155,89,182,0.4); color: #8E44AD; }
-    .badge-guild { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4); color: #27AE60; }
     
     /* 랭킹, 인기도, 유니온 박스 */
     .char-meta-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
@@ -99,13 +96,6 @@
     .tab-btn { padding: 7px 18px; border-radius: 20px; border: 1.5px solid rgba(255,165,0,0.3); background: #fff; color: rgba(92,46,0,0.6); font-family: 'Noto Sans KR', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all .2s; }
     .tab-btn.active { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border-color: var(--maple-orange); color: #fff; box-shadow: 0 4px 12px rgba(255,107,0,0.3); }
     .tab-btn:hover:not(.active) { border-color: var(--maple-orange); color: var(--maple-orange); }
-
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 12px; margin-bottom: 20px; }
-    .stat-card { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,250,240,0.95)); border: 1px solid rgba(255,165,0,0.25); border-radius: 14px; padding: 17px 20px; box-shadow: 0 4px 12px rgba(255,165,0,0.05); transition: all .3s ease; }
-    .stat-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255,165,0,0.12); }
-    .stat-card-title { font-size: 0.69rem; font-weight: 800; text-transform: uppercase; color: rgba(92,46,0,0.5); margin-bottom: 6px; }
-    .stat-card-value { font-family: 'Black Han Sans', sans-serif; font-size: 1.55rem; background: linear-gradient(135deg, #FF6B00, #D87A00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-card-sub { font-size: 0.72rem; color: rgba(92,46,0,0.5); font-weight: 500; margin-top: 2px; }
     
     .section-title { font-family: 'Black Han Sans', sans-serif; font-size: 1.1rem; color: var(--maple-orange); margin-bottom: 13px; display: flex; align-items: center; gap: 8px; }
     .section-title::before { content:''; display:inline-block; width:4px; height:15px; background: linear-gradient(180deg, var(--maple-orange), #FFD700); border-radius: 2px; }
@@ -133,10 +123,7 @@
     .combat-power-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: rgba(92,46,0,0.55); margin-bottom: 4px; letter-spacing: 0.8px; }
     .combat-power-value { font-family: 'Black Han Sans', sans-serif; font-size: 2rem; background: linear-gradient(135deg, #FF6B00, #FFD700); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.1; }
     .combat-power-sub { font-size: 0.72rem; color: rgba(92,46,0,0.5); margin-top: 4px; font-weight: 500; }
-    .stats-mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-    .mini-stat { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,165,0,0.2); border-radius: 10px; padding: 9px 12px; }
-    .mini-stat-label { font-size: 0.64rem; font-weight: 800; color: rgba(92,46,0,0.5); margin-bottom: 2px; }
-    .mini-stat-value { font-family: 'Black Han Sans', sans-serif; font-size: 1rem; background: linear-gradient(135deg, #FF6B00, #D87A00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    
     .equip-right-panel { min-width: 0; }
     .equip-grid-compact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
     .info-card { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,250,240,0.9)); border: 1px solid rgba(255,165,0,0.25); border-radius: 14px; padding: 17px; box-shadow: 0 4px 12px rgba(255,165,0,0.05); }
@@ -240,19 +227,19 @@
             <div class="char-meta-grid">
               <div class="meta-box">
                 <span class="meta-label">종합 랭킹</span>
-                <span class="meta-value">{{ char.ranking }}위</span>
+                <span class="meta-value">{{ char.ranking || '-' }}위</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">인기도</span>
-                <span class="meta-value highlight">{{ char.popularity }}</span>
+                <span class="meta-value highlight">{{ char.popularity || '0' }}</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">유니온 레벨</span>
-                <span class="meta-value">{{ char.union.level }}</span>
+                <span class="meta-value">{{ char.unionLevel || '-' }}</span>
               </div>
               <div class="meta-box">
                 <span class="meta-label">길드</span>
-                <span class="meta-value">{{ char.guild }}</span>
+                <span class="meta-value">{{ char.guild || '-' }}</span>
               </div>
             </div>
 
@@ -265,22 +252,18 @@
 
         <div class="tab-row">
           <button class="tab-btn" :class="{ active: tab==='stats' }" @click="tab='stats'">스탯/장비</button>
-          <button class="tab-btn" :class="{ active: tab==='equip' }" @click="tab='equip'">스킬/어빌리티</button>
+          <button class="tab-btn" :class="{ active: tab==='equip' }" @click="tab='equip'">장비 상세</button>
           <button class="tab-btn" :class="{ active: tab==='union' }" @click="tab='union'">유니온</button>
         </div>
 
         <div v-if="tab==='stats'">
           <div class="stats-equip-layout">
-            <!-- 왼쪽: 전투력 + 심볼 + 어빌리티 -->
             <div class="stats-left-panel">
-              <!-- 전투력 카드 -->
               <div class="combat-power-card">
-                <div class="combat-power-label">⚔️ 최종 전투력</div>
-                <div class="combat-power-value">{{ char.stats[0].value }}</div>
-                <div class="combat-power-sub">{{ char.stats[0].sub }}</div>
+                <div class="combat-power-label">⚔️ 전투력</div>
+                <div class="combat-power-value">{{ char.combatPower || '-' }}</div>
               </div>
 
-              <!-- 아케인 / 어센틱 심볼 -->
               <div class="info-card">
                 <div class="section-title" style="margin-bottom:11px;">🔮 아케인 / 어센틱</div>
                 <div class="info-row" v-for="r in char.arcane" :key="r.k">
@@ -288,7 +271,6 @@
                 </div>
               </div>
 
-              <!-- 어빌리티 -->
               <div class="info-card">
                 <div class="section-title" style="margin-bottom:11px;">✨ 어빌리티</div>
                 <div class="info-row" v-for="ab in char.abilities" :key="ab">
@@ -297,9 +279,8 @@
               </div>
             </div>
 
-            <!-- 오른쪽: 착용 장비 (세로로 길게) -->
             <div class="equip-right-panel">
-              <div class="section-title" style="margin-bottom:13px;">🎽 착용 장비</div>
+              <div class="section-title" style="margin-bottom:13px;">착용 장비</div>
               <div class="equip-grid-compact">
                 <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char.equips" :key="eq.slot">
                   <div class="equip-slot">{{ eq.slot }}</div>
@@ -317,10 +298,11 @@
         </div>
 
         <div v-if="tab==='equip'">
-          <div class="section-title">착용 장비</div>
+          <div class="section-title">착용 장비 상세</div>
           <div class="equip-grid">
             <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char.equips" :key="eq.slot">
               <div class="equip-slot">{{ eq.slot }}</div>
+              <img v-if="eq.itemIcon" :src="eq.itemIcon" :alt="eq.name" style="width: 32px; height: 32px; margin: 4px 0;" />
               <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
               <div class="equip-stars" v-if="eq.stars > 0">
                 <span v-for="i in 22" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
@@ -333,27 +315,14 @@
         </div>
 
         <div v-if="tab==='union'">
-          <div class="two-col">
-            <div class="info-card">
-              <div class="section-title" style="margin-bottom:11px;">유니온 정보</div>
-              <div class="info-row"><span class="info-key">유니온 등급</span><span class="info-val highlight">{{ char.union.grade }}</span></div>
-              <div class="info-row"><span class="info-key">유니온 레벨</span><span class="info-val">{{ char.union.level }}</span></div>
-              <div class="info-row"><span class="info-key">아티팩트 레벨</span><span class="info-val">{{ char.union.artifact }}</span></div>
-              <div class="info-row"><span class="info-key">공격대 전투력</span><span class="info-val highlight">{{ char.union.raiderPower }}</span></div>
+          <div class="info-card" style="max-width: 600px; margin: 0 auto;">
+            <div class="section-title" style="margin-bottom:11px;">유니온 정보</div>
+            <div class="info-row">
+              <span class="info-key">유니온 레벨</span>
+              <span class="info-val highlight">{{ char.unionLevel || '-' }}</span>
             </div>
-            <div class="info-card">
-              <div class="section-title" style="margin-bottom:11px;">하이퍼스탯</div>
-              <div class="info-row" v-for="hs in char.hyperStat" :key="hs.k">
-                <span class="info-key">{{ hs.k }}</span><span class="info-val">Lv.{{ hs.v }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="info-card">
-            <div class="section-title" style="margin-bottom:11px;">유니온 점령 보너스</div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(185px,1fr)); gap:4px;">
-              <div class="info-row" v-for="ub in char.union.bonuses" :key="ub.k" style="border-bottom:none;">
-                <span class="info-key">{{ ub.k }}</span><span class="info-val highlight">{{ ub.v }}</span>
-              </div>
+            <div style="text-align:center; padding: 30px; font-size: 0.85rem; color: rgba(92,46,0,0.5);">
+              상세 유니온 및 공격대, 하이퍼스탯 정보는 추후 업데이트 예정입니다.
             </div>
           </div>
         </div>
@@ -412,75 +381,6 @@ createApp({
     const char = ref(null);
     const tab = ref('stats');
 
-    function generateMockChar(name) {
-      const jobs   = ['아크메이지(불,독)','나이트로드','보우마스터','아델','카이저','호영','일리움','세라'];
-      const worlds = ['스카니아','베라','리부트','크로아','유니온'];
-      const job    = jobs[Math.floor(Math.random()*jobs.length)];
-      const world  = worlds[Math.floor(Math.random()*worlds.length)];
-      const grades = ['rare','epic','unique','legendary'];
-      const slotNames = ['무기','보조무기','엠블렘','모자','얼굴','눈','귀','상의','하의','장갑','망토','신발','반지1','반지2','반지3','반지4','펜던트1','펜던트2','벨트','어깨'];
-      const equips = slotNames.map(slot => {
-        const grade = grades[Math.floor(Math.random()*grades.length)];
-        const stars = grade==='legendary'?Math.floor(Math.random()*5)+18:grade==='unique'?Math.floor(Math.random()*6)+15:grade==='epic'?Math.floor(Math.random()*8)+10:Math.floor(Math.random()*10)+3;
-        return { slot, grade, stars,
-          name: `${['태풍','폭풍','불꽃','그림자','빛의','영원한'][Math.floor(Math.random()*6)]} ${slot}`,
-          potential: grade!=='rare'?[`보스 데미지 +${[30,35,40][Math.floor(Math.random()*3)]}%`,`크리 데미지 +${[8,10,12,15][Math.floor(Math.random()*4)]}%`,`올스탯 +${[9,12,15][Math.floor(Math.random()*3)]}%`].slice(0,Math.floor(Math.random()*2)+1):null
-        };
-      });
-      return {
-        name, job, world,
-        guild: Math.random()>.4?['메이플리그','스카이','다크나이트','루나틱'][Math.floor(Math.random()*4)]:null,
-        level: Math.floor(Math.random()*100)+160, class: job,
-        ranking: (Math.floor(Math.random() * 50000) + 1).toLocaleString(),    // 랭킹 추가
-        popularity: (Math.floor(Math.random() * 5000) - 100).toLocaleString(), // 인기도 추가
-        expPercent: Math.floor(Math.random()*100),
-        imageUrl: `https://avatar.maplestory.nexon.com/Character/${encodeURIComponent(name)}`,
-        stats: [
-          { label:'전투력',      value:(Math.floor(Math.random()*4000000)+8000000).toLocaleString(), sub:'최종 전투력' },
-          { label:'보스 데미지', value:Math.floor(Math.random()*80+280)+'%',   sub:'보스 상대 추가 데미지' },
-          { label:'방어율 무시', value:Math.floor(Math.random()*10+88)+'%',    sub:'몬스터 방어율 무시' },
-          { label:'크리티컬',    value:Math.floor(Math.random()*5+95)+'%',     sub:'크리티컬 확률' },
-          { label:'크리 데미지', value:Math.floor(Math.random()*20+200)+'%',   sub:'크리티컬 데미지' },
-          { label:'최종 데미지', value:Math.floor(Math.random()*30+140)+'%',   sub:'최종 데미지 합산' },
-          { label:'스타포스',    value:Math.floor(Math.random()*20+200)+'개',  sub:'누적 스타포스' },
-          { label:'아이템 드랍', value:Math.floor(Math.random()*100+200)+'%',  sub:'아이템 드랍률' },
-        ],
-        arcane: [
-          { k:'아케인포스', v:(Math.floor(Math.random()*200)+800).toLocaleString() },
-          { k:'어센틱포스', v:(Math.floor(Math.random()*100)+300).toLocaleString() },
-          { k:'아케인심볼', v:`Lv.${Math.floor(Math.random()*10+10)}` },
-          { k:'어센틱심볼', v:`Lv.${Math.floor(Math.random()*10+1)}` },
-        ],
-        abilities: [
-          `보스 몬스터 공격 시 데미지 +${[20,25,30][Math.floor(Math.random()*3)]}%`,
-          `크리티컬 확률 +${[10,15,20][Math.floor(Math.random()*3)]}%`,
-          `버프 지속 시간 +${[30,40,50][Math.floor(Math.random()*3)]}%`,
-        ],
-        equips,
-        union: {
-          grade: ['그랜드마스터 유니온','시즌 레전드 유니온','레전드 유니온'][Math.floor(Math.random()*3)],
-          level: (Math.floor(Math.random()*2000)+6000).toLocaleString(),
-          artifact: Math.floor(Math.random()*30+120),
-          raiderPower: (Math.floor(Math.random()*1000000)+9000000).toLocaleString(),
-          bonuses: [
-            { k:'올스탯',      v:`+${Math.floor(Math.random()*30+100)}` },
-            { k:'최대 HP',     v:`+${(Math.floor(Math.random()*5000+30000)).toLocaleString()}` },
-            { k:'공격력/마력', v:`+${Math.floor(Math.random()*20+80)}` },
-            { k:'보스 데미지', v:`+${Math.floor(Math.random()*10+15)}%` },
-            { k:'크리 데미지', v:`+${Math.floor(Math.random()*5+8)}%` },
-            { k:'방어율 무시', v:`+${Math.floor(Math.random()*5+15)}%` },
-          ]
-        },
-        hyperStat: [
-          { k:'크리티컬 데미지', v:Math.floor(Math.random()*5+10) },
-          { k:'보스 데미지',     v:Math.floor(Math.random()*5+10) },
-          { k:'방어율 무시',     v:Math.floor(Math.random()*5+10) },
-          { k:'공격력/마력',     v:Math.floor(Math.random()*5+10) },
-          { k:'스탯',            v:Math.floor(Math.random()*5+10) },
-        ]
-      };
-    }
-
     function reSearch() {
       const name = searchKeyword.value.trim();
       if (name) {
@@ -488,7 +388,7 @@ createApp({
       }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const name = urlParams.get('name');
       
@@ -500,16 +400,26 @@ createApp({
 
       currentName.value = name;
       
-      setTimeout(() => {
-        try {
-          if (name.length < 2) throw new Error('존재하지 않는 캐릭터입니다.');
-          char.value = generateMockChar(name);
-        } catch (e) {
-          error.value = e.message;
-        } finally {
-          loading.value = false;
+      try {
+        // FastAPI 서버를 향해 실제 요청을 보냅니다.
+        const response = await fetch(`https://openapi-web-project.onrender.com/api/character?nickname=${encodeURIComponent(name)}`);
+        
+        if (!response.ok) {
+          const errData = await response.json();
+          if (response.status === 404) throw new Error('존재하지 않는 캐릭터 닉네임입니다.');
+          if (response.status === 429) throw new Error('조회 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+          if (response.status === 502) throw new Error('넥슨 서버와 연결할 수 없습니다. 잠시 후 시도해주세요.');
+          throw new Error(errData.detail || '캐릭터 정보를 불러오는데 실패했습니다.');
         }
-      }, 1400);
+        
+        // 백엔드의 실제 JSON 응답을 char 변수에 할당합니다.
+        char.value = await response.json();
+        
+      } catch (e) {
+        error.value = e.message;
+      } finally {
+        loading.value = false;
+      }
     });
 
     return { searchKeyword, currentName, loading, error, char, tab, reSearch };
