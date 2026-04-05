@@ -30,30 +30,34 @@ router = APIRouter(prefix="/api", tags=["캐릭터"])
 
 _NEXON_TIMEOUT_SEC = 30.0
 
-# equips에 포함·정렬에 쓰는 슬롯만 (훈장·포켓·뱃지 등 제외)
+# equips에 포함·정렬 순서 (넥슨 item_equipment_slot 한글값 기준)
 _EQUIP_SLOTS: tuple[str, ...] = (
     "무기",
     "보조무기",
     "엠블렘",
     "모자",
-    "얼굴장식",
-    "눈장식",
-    "귀고리",
     "상의",
     "하의",
     "장갑",
-    "망토",
     "신발",
+    "망토",
+    "어깨장식",
+    "얼굴장식",
+    "눈장식",
+    "귀고리",
+    "벨트",
+    "펜던트",  # 목걸이 슬롯 1
+    "펜던트2",
     "반지1",
     "반지2",
     "반지3",
     "반지4",
-    "펜던트",
-    "펜던트2",
-    "벨트",
-    "어깨장식",
+    "포켓 아이템",
+    "기계 심장",
+    "뱃지",
+    "훈장",
 )
-_EQUIP_ORDER = {s: i for i, s in enumerate(_EQUIP_SLOTS)}
+_EQUIP_ORDER: dict[str, int] = {s: i for i, s in enumerate(_EQUIP_SLOTS)}
 
 _ARCANE_NAMES = ("아케인포스", "아케인 포스")
 _AUTH_NAMES = ("어센틱포스", "어센틱 포스")
