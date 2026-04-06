@@ -376,7 +376,10 @@
                       <div class="equip-stars" v-if="eq.stars > 0">
                         <span v-for="i in 30" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
                       </div>
-                      <div class="equip-name">{{ eq.name }}</div>
+  
+                      <div class="equip-name">
+                        {{ eq.name }}<span v-if="eq.scrollUpgrade"> (+{{ eq.scrollUpgrade }})</span>
+                      </div>
                     </div>
 
                     <div class="equip-options-wrap" v-if="eq.potential || eq.additionalPotential">
