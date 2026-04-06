@@ -203,7 +203,7 @@ def _parse_stars(raw) -> int:
     if not s:
         return 0
     m = re.match(r"^(\d+)", s)
-    return min(int(m.group(1)), 25) if m else 0
+    return min(int(m.group(1)), 30) if m else 0
 
 
 def _grade_class(raw) -> str | None:
