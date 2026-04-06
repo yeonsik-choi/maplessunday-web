@@ -109,8 +109,14 @@
     .equip-name.rare { color: #2980B9; } .equip-name.epic { color: #8E44AD; } .equip-name.unique { color: #D4AC0D; } .equip-name.legendary { color: #27AE60; }
     .equip-stars { display: flex; flex-wrap: wrap; gap: 1px; }
     .star-on { color: #FF9D00; font-size: 0.58rem; filter: drop-shadow(0 1px 2px rgba(255,165,0,0.4)); } .star-off { color: rgba(0,0,0,0.1); font-size: 0.58rem; }
-    .equip-potential { font-size: 0.67rem; color: rgba(92,46,0,0.7); font-weight: 500; line-height: 1.4; }
-    .equip-potential span { display: block; }
+    /* 잠재능력 & 에디셔널 컨테이너 (가로 배치) */
+    .equip-options-wrap {display: flex; gap: 12px; margin-top: 6px; }
+    .equip-potential-box { flex: 1; }
+    /* 각 잠재능력 라벨 (원하지 않으면 display: none 처리 가능) */
+    .equip-potential-title {font-size: 0.65rem; color: #2980B9; font-weight: 800; margin-bottom: 2px; }
+    .equip-add-potential-title {font-size: 0.65rem; color: #27AE60; font-weight: 800; margin-bottom: 2px; }
+    .equip-potential {font-size: 0.67rem; color: rgba(92,46,0,0.7); font-weight: 500; line-height: 1.4; }
+    .equip-potential span {display: block; word-break: keep-all; }
     
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
@@ -287,8 +293,20 @@
                     <span v-for="i in 22" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
                   </div>
                   <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
-                  <div v-if="eq.potential" class="equip-potential">
-                    <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
+                  <div class="equip-options-wrap" v-if="eq.potential || eq.additionalPotential">
+                    <div v-if="eq.potential" class="equip-potential-box">
+                      <div class="equip-potential-title">잠재능력</div>
+                      <div class="equip-potential">
+                        <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
+                      </div>
+                    </div>
+  
+                    <div v-if="eq.additionalPotential" class="equip-potential-box">
+                      <div class="equip-add-potential-title">에디셔널</div>
+                      <div class="equip-potential">
+                        <span v-for="p in eq.additionalPotential" :key="p">• {{ p }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -306,8 +324,20 @@
               <div class="equip-stars" v-if="eq.stars > 0">
                 <span v-for="i in 22" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
               </div>
-              <div v-if="eq.potential" class="equip-potential">
-                <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
+              <div class="equip-options-wrap" v-if="eq.potential || eq.additionalPotential">
+                <div v-if="eq.potential" class="equip-potential-box">
+                  <div class="equip-potential-title">잠재능력</div>
+                  <div class="equip-potential">
+                    <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
+                  </div>
+                </div>
+  
+                <div v-if="eq.additionalPotential" class="equip-potential-box">
+                  <div class="equip-add-potential-title">에디셔널</div>
+                  <div class="equip-potential">
+                    <span v-for="p in eq.additionalPotential" :key="p">• {{ p }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
