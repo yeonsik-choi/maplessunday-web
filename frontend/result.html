@@ -223,6 +223,66 @@
     .info-val { font-weight: 800; color: var(--maple-brown); }
     .info-val.highlight { color: var(--maple-orange); }
 
+    /* ── 장비 상세 툴팁 (모달) ── */
+    .tooltip-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .tooltip-box {
+      background: rgba(17, 17, 17, 0.95);
+      border: 1.5px solid rgba(255,255,255,0.8);
+      border-radius: 8px;
+      width: 100%; max-width: 320px;
+      color: #fff; font-family: 'Noto Sans KR', sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .tooltip-close {
+      position: absolute; top: 10px; right: 12px;
+      background: none; border: none; color: #fff;
+      font-size: 1.2rem; cursor: pointer; opacity: 0.6;
+    }
+    .tooltip-close:hover { opacity: 1; }
+
+    .tooltip-stars { text-align: center; padding: 10px 0 5px; color: #FFD700; font-size: 0.8rem; letter-spacing: 1px; }
+    .tooltip-stars span:nth-child(5n):not(:last-child) { margin-right: 6px; }
+
+    .tooltip-title-area { text-align: center; padding: 0 15px 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); }
+    .tooltip-soul-name { color: #ccff00; font-size: 0.8rem; font-weight: 700; margin-bottom: 2px; }
+    .tooltip-item-name { font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+    .tooltip-grade-text { font-size: 0.75rem; margin-top: 2px; }
+
+    .tooltip-icon-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); display: flex; align-items: flex-start; gap: 12px; }
+    .tooltip-icon-wrap { width: 64px; height: 64px; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
+    .tooltip-icon-wrap img { width: 50px; height: 50px; object-fit: contain; }
+    .tooltip-req { flex: 1; font-size: 0.75rem; color: #FFCC00; }
+
+    .tooltip-stats-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); font-size: 0.8rem; line-height: 1.6; font-weight: 500; }
+    .stat-line { display: flex; flex-wrap: wrap; }
+    .c-cyan { color: #66ffff; font-weight: 700; } /* 종합 스탯 */
+    .c-white { color: #ffffff; } /* 기본 스탯 */
+    .c-green { color: #ccff00; } /* 추옵 */
+    .c-blue { color: #aaaaff; } /* 작 */
+    .c-gold { color: #ffcc00; } /* 스타포스 */
+
+    .tooltip-pot-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); font-size: 0.8rem; }
+    .pot-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 6px; }
+    .pot-icon { display: inline-block; width: 14px; height: 14px; line-height: 14px; text-align: center; border-radius: 3px; font-size: 0.65rem; font-weight: 900; }
+    .pot-icon.L { background: #27AE60; color: #fff; border: 1px solid #1E8449; }
+    .pot-icon.U { background: #D4AC0D; color: #fff; border: 1px solid #B7950B; }
+    .pot-icon.E { background: #8E44AD; color: #fff; border: 1px solid #732D91; }
+    .pot-icon.R { background: #2980B9; color: #fff; border: 1px solid #1F618D; }
+    .pot-line { color: #fff; margin-bottom: 2px; }
+
+    .tooltip-soul-area { padding: 15px; font-size: 0.8rem; }
+
+    /* 기존 장비 카드 마우스 오버 효과 추가 */
+    .equip-card { cursor: pointer; }
+    .equip-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,165,0,0.2); }
+
     /* ── Footer ── */
     .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; }
     .footer-inner { width: 100%; max-width: 1100px; padding: 0 24px; }
@@ -398,7 +458,7 @@
                 </div>
               </div>
               <div class="equip-grid-compact">
-                <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot">
+                <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot" @click="openTooltip(eq)">
   
                   <div class="equip-icon-wrap">
                     <div class="equip-slot">{{ eq.slot }}</div>
@@ -449,7 +509,7 @@
             </div>
           </div>
           <div class="equip-grid">
-            <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot">
+            <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot" @click="openTooltip(eq)">
               <div class="equip-slot">{{ eq.slot }}</div>
               <img v-if="eq.itemIcon" :src="eq.itemIcon" :alt="eq.name" style="width: 32px; height: 32px; margin: 4px 0;" />
               <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
@@ -491,7 +551,74 @@
       </div>
     </div>
   </div>
+  <div class="tooltip-overlay" v-if="selectedEquip" @click.self="closeTooltip">
+    <div class="tooltip-box">
+      <button class="tooltip-close" @click="closeTooltip">×</button>
+      
+      <div class="tooltip-stars" v-if="selectedEquip.stars > 0">
+        <span v-for="i in 30" :key="i" v-show="i <= selectedEquip.stars">★</span>
+      </div>
+      
+      <div class="tooltip-title-area">
+        <div class="tooltip-soul-name" v-if="selectedEquip.soulName">{{ selectedEquip.soulName }}</div>
+        <div class="tooltip-item-name" :class="getGradeColor(selectedEquip.grade)">
+          {{ selectedEquip.name }}<span v-if="selectedEquip.scrollUpgrade"> (+{{ selectedEquip.scrollUpgrade }})</span>
+        </div>
+        <div class="tooltip-grade-text" :class="getGradeColor(selectedEquip.grade)" v-if="selectedEquip.grade">
+          ({{ selectedEquip.grade === 'legendary' ? '레전드리' : selectedEquip.grade === 'unique' ? '유니크' : selectedEquip.grade === 'epic' ? '에픽' : '레어' }} 아이템)
+        </div>
+      </div>
 
+      <div class="tooltip-icon-area">
+        <div class="tooltip-icon-wrap">
+          <img v-if="selectedEquip.itemIcon" :src="selectedEquip.itemIcon" :alt="selectedEquip.name" />
+        </div>
+        <div class="tooltip-req">
+          <div style="color: #fff; margin-bottom: 4px;">장비분류 : {{ selectedEquip.slot }}</div>
+          <div v-if="selectedEquip.baseEquipmentLevel">REQ LEV : {{ selectedEquip.baseEquipmentLevel }}</div>
+        </div>
+      </div>
+
+      <div class="tooltip-stats-area">
+        <div v-html="renderStatLine('INT', 'int')"></div>
+        <div v-html="renderStatLine('LUK', 'luk')"></div>
+        <div v-html="renderStatLine('STR', 'str')"></div>
+        <div v-html="renderStatLine('DEX', 'dex')"></div>
+        <div v-html="renderStatLine('최대 HP', 'maxHp')"></div>
+        <div v-html="renderStatLine('최대 MP', 'maxMp')"></div>
+        <div v-html="renderStatLine('공격력', 'attackPower')"></div>
+        <div v-html="renderStatLine('마력', 'magicPower')"></div>
+        <div v-html="renderStatLine('방어력', 'armor')"></div>
+        <div v-html="renderPercentStatLine('보스 몬스터 공격 시 데미지', 'bossDamage')"></div>
+        <div v-html="renderPercentStatLine('몬스터 방어율 무시', 'ignoreMonsterArmor')"></div>
+        <div v-html="renderPercentStatLine('올스탯', 'allStat')"></div>
+        <div v-if="selectedEquip.cuttableCount !== null" style="color: #ffcc00; margin-top: 4px;">
+          가위 사용 가능 횟수 : {{ selectedEquip.cuttableCount }}회
+        </div>
+      </div>
+
+      <div class="tooltip-pot-area" v-if="selectedEquip.potential || selectedEquip.additionalPotential">
+        <div v-if="selectedEquip.potential && selectedEquip.potential.length > 0">
+          <div class="pot-title" :class="getGradeColor(selectedEquip.grade)">
+            <span class="pot-icon" :class="getGradeIcon(selectedEquip.grade)">{{ getGradeIcon(selectedEquip.grade) }}</span> 잠재옵션
+          </div>
+          <div class="pot-line" v-for="(pot, idx) in selectedEquip.potential" :key="'p'+idx">{{ pot }}</div>
+        </div>
+        
+        <div v-if="selectedEquip.additionalPotential && selectedEquip.additionalPotential.length > 0" style="margin-top: 10px;">
+          <div class="pot-title" :class="getGradeColor(selectedEquip.additionalGrade)">
+            <span class="pot-icon" :class="getGradeIcon(selectedEquip.additionalGrade)">{{ getGradeIcon(selectedEquip.additionalGrade) }}</span> 에디셔널 잠재옵션
+          </div>
+          <div class="pot-line" v-for="(pot, idx) in selectedEquip.additionalPotential" :key="'ap'+idx">{{ pot }}</div>
+        </div>
+      </div>
+
+      <div class="tooltip-soul-area" v-if="selectedEquip.soulName || selectedEquip.soulOption">
+        <div style="color: #ffcc00; font-weight: 700; margin-bottom: 4px;">{{ selectedEquip.soulName }} 적용</div>
+        <div style="color: #fff;">{{ selectedEquip.soulOption }}</div>
+      </div>
+    </div>
+  </div>
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-main">
@@ -543,7 +670,87 @@ createApp({
     const tab = ref('stats');
     
     const activeAbilityPreset = ref('1');
-    const activeEquipPreset = ref('1'); // 장비 프리셋 번호 추가
+    const activeEquipPreset = ref('1'); // 장비 프리셋 번호
+
+    // --- 툴팁(모달) 관련 상태 및 함수 ---
+    const selectedEquip = ref(null);
+
+    function openTooltip(eq) {
+      selectedEquip.value = eq;
+      // 툴팁(모달)이 열렸을 때 배경 스크롤 방지
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeTooltip() {
+      selectedEquip.value = null;
+      // 스크롤 방지 해제
+      document.body.style.overflow = '';
+    }
+
+    function getGradeColor(grade) {
+      if (!grade) return 'c-white';
+      const g = grade.toLowerCase();
+      if (g === 'legendary') return 'c-green';
+      if (g === 'unique') return 'c-gold';
+      if (g === 'epic') return 'c-blue';
+      if (g === 'rare') return 'c-cyan';
+      return 'c-white';
+    }
+
+    function getGradeIcon(grade) {
+      if (!grade) return '';
+      const g = grade.toLowerCase();
+      if (g === 'legendary') return 'L';
+      if (g === 'unique') return 'U';
+      if (g === 'epic') return 'E';
+      if (g === 'rare') return 'R';
+      return '';
+    }
+
+    // 기본 스탯 처리 함수 (INT, STR 등)
+    function renderStatLine(label, key) {
+      if (!selectedEquip.value || !selectedEquip.value.totalOption) return '';
+      const total = selectedEquip.value.totalOption[key] || 0;
+      if (total === 0) return '';
+
+      const base = (selectedEquip.value.baseOption && selectedEquip.value.baseOption[key]) || 0;
+      const add = (selectedEquip.value.addOption && selectedEquip.value.addOption[key]) || 0;
+      const etc = (selectedEquip.value.etcOption && selectedEquip.value.etcOption[key]) || 0;
+      const star = (selectedEquip.value.starforceOption && selectedEquip.value.starforceOption[key]) || 0;
+
+      // 추가 스탯이 없는 경우
+      if (add === 0 && etc === 0 && star === 0 && base === total) {
+        return `<div class="stat-line">${label} : +${total}</div>`;
+      }
+
+      // 인게임 형식: INT : +382 ( 150 +55 +32 +145 )
+      let html = `<div class="stat-line"><span class="c-cyan">${label} : +${total}</span>&nbsp;( ${base} `;
+      if (add > 0) html += `<span class="c-green">+${add}</span> `;
+      if (etc > 0) html += `<span class="c-blue">+${etc}</span> `;
+      if (star > 0) html += `<span class="c-gold">+${star}</span> `;
+      html += `)</div>`;
+      return html;
+    }
+
+    // 퍼센트 스탯 처리 함수 (보공, 방무 등)
+    function renderPercentStatLine(label, key) {
+      if (!selectedEquip.value || !selectedEquip.value.totalOption) return '';
+      const total = selectedEquip.value.totalOption[key] || 0;
+      if (total === 0) return '';
+
+      const base = (selectedEquip.value.baseOption && selectedEquip.value.baseOption[key]) || 0;
+      const add = (selectedEquip.value.addOption && selectedEquip.value.addOption[key]) || 0;
+
+      // 추가 옵션이 없는 경우
+      if (add === 0 && base === total) {
+        return `<div class="stat-line">${label} : +${total}%</div>`;
+      }
+
+      let html = `<div class="stat-line"><span class="c-cyan">${label} : +${total}%</span>&nbsp;( ${base}% `;
+      if (add > 0) html += `<span class="c-green">+${add}%</span> `;
+      html += `)</div>`;
+      return html;
+    }
 
     function reSearch() {
       const name = searchKeyword.value.trim();
@@ -594,7 +801,11 @@ createApp({
 
     return { 
       searchKeyword, currentName, loading, error, char, tab, 
-      activeAbilityPreset, activeEquipPreset, reSearch 
+      activeAbilityPreset, activeEquipPreset, reSearch,
+      
+      // 툴팁 관련 리턴 변수/함수들 추가
+      selectedEquip, openTooltip, closeTooltip, 
+      getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine
     };
   }
 }).mount('#app');
