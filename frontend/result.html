@@ -100,7 +100,7 @@
     .section-title { font-family: 'Black Han Sans', sans-serif; font-size: 1.1rem; color: var(--maple-orange); margin-bottom: 13px; display: flex; align-items: center; gap: 8px; }
     .section-title::before { content:''; display:inline-block; width:4px; height:15px; background: linear-gradient(180deg, var(--maple-orange), #FFD700); border-radius: 2px; }
     
-    /* ── 어빌리티 프리셋 버튼 ── */
+    /* ── 프리셋 버튼 (어빌리티 & 장비 공통) ── */
     .preset-btns { display: flex; gap: 6px; }
     .preset-btn { 
       background: #fff; border: 1px solid rgba(255,165,0,0.3); border-radius: 6px; 
@@ -175,15 +175,11 @@
       margin-bottom: 6px; 
     }
     .equip-stars span { line-height: 1; }
-    /* 5, 10, 20, 25번째 별 오른쪽에 여백 추가 (15번째는 줄바꿈 지점이므로 제외) */
-    .equip-stars span:nth-child(5n):not(:nth-child(15n)) {
-      margin-right: 7px;
-    }
+    .equip-stars span:nth-child(5n):not(:nth-child(15n)) { margin-right: 7px; }
 
     .star-on { color: #FF9D00; font-size: 0.65rem; filter: drop-shadow(0 1px 2px rgba(255,165,0,0.4)); } 
     .star-off { color: rgba(0,0,0,0.1); font-size: 0.65rem; }
 
-    /* 장비 이름 기본 색상을 갈색(기본 텍스트 색상)으로 고정 */
     .equip-name { font-size: 0.9rem; font-weight: 800; line-height: 1.3; color: var(--maple-brown); }
 
     /* 등급 공통 색상 클래스로 분리 */
@@ -201,8 +197,6 @@
       border-top: 1px dashed rgba(255,165,0,0.3); 
     }
     .equip-potential-box { flex: 1; }
-    
-    /* 고정되어 있던 color 속성 제거 */
     .equip-potential-title { font-size: 0.68rem; font-weight: 800; margin-bottom: 4px; }
     .equip-add-potential-title { font-size: 0.68rem; font-weight: 800; margin-bottom: 4px; }
     .equip-potential { font-size: 0.72rem; color: rgba(92,46,0,0.75); font-weight: 500; line-height: 1.5; }
@@ -395,9 +389,16 @@
             </div>
 
             <div class="equip-right-panel">
-              <div class="section-title" style="margin-bottom:13px;">착용 장비</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px;">
+                <div class="section-title" style="margin-bottom: 0;">착용 장비</div>
+                <div class="preset-btns">
+                  <button class="preset-btn" :class="{ active: activeEquipPreset === '1' }" @click="activeEquipPreset = '1'">1</button>
+                  <button class="preset-btn" :class="{ active: activeEquipPreset === '2' }" @click="activeEquipPreset = '2'">2</button>
+                  <button class="preset-btn" :class="{ active: activeEquipPreset === '3' }" @click="activeEquipPreset = '3'">3</button>
+                </div>
+              </div>
               <div class="equip-grid-compact">
-                <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char.equips" :key="eq.slot">
+                <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot">
   
                   <div class="equip-icon-wrap">
                     <div class="equip-slot">{{ eq.slot }}</div>
@@ -439,9 +440,16 @@
         </div>
 
         <div v-if="tab==='equip'">
-          <div class="section-title">착용 장비 상세</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="section-title" style="margin-bottom: 0;">착용 장비 상세</div>
+            <div class="preset-btns">
+              <button class="preset-btn" :class="{ active: activeEquipPreset === '1' }" @click="activeEquipPreset = '1'">1</button>
+              <button class="preset-btn" :class="{ active: activeEquipPreset === '2' }" @click="activeEquipPreset = '2'">2</button>
+              <button class="preset-btn" :class="{ active: activeEquipPreset === '3' }" @click="activeEquipPreset = '3'">3</button>
+            </div>
+          </div>
           <div class="equip-grid">
-            <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char.equips" :key="eq.slot">
+            <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot">
               <div class="equip-slot">{{ eq.slot }}</div>
               <img v-if="eq.itemIcon" :src="eq.itemIcon" :alt="eq.name" style="width: 32px; height: 32px; margin: 4px 0;" />
               <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
@@ -533,7 +541,9 @@ createApp({
     const error = ref('');
     const char = ref(null);
     const tab = ref('stats');
+    
     const activeAbilityPreset = ref('1');
+    const activeEquipPreset = ref('1'); // 장비 프리셋 번호 추가
 
     function reSearch() {
       const name = searchKeyword.value.trim();
@@ -555,7 +565,6 @@ createApp({
       currentName.value = name;
       
       try {
-        // FastAPI 서버를 향해 실제 요청을 보냅니다.
         const response = await fetch(`https://openapi-web-project.onrender.com/api/character?nickname=${encodeURIComponent(name)}`);
         
         if (!response.ok) {
@@ -566,8 +575,15 @@ createApp({
           throw new Error(errData.detail || '캐릭터 정보를 불러오는데 실패했습니다.');
         }
         
-        // 백엔드의 실제 JSON 응답을 char 변수에 할당합니다.
         char.value = await response.json();
+
+        // API 응답으로부터 현재 선택되어 있는 프리셋 번호 설정
+        if (char.value.abilityPresetNo) {
+            activeAbilityPreset.value = String(char.value.abilityPresetNo);
+        }
+        if (char.value.equipmentPresetNo) {
+            activeEquipPreset.value = String(char.value.equipmentPresetNo);
+        }
         
       } catch (e) {
         error.value = e.message;
@@ -576,7 +592,10 @@ createApp({
       }
     });
 
-    return { searchKeyword, currentName, loading, error, char, tab, activeAbilityPreset, reSearch };
+    return { 
+      searchKeyword, currentName, loading, error, char, tab, 
+      activeAbilityPreset, activeEquipPreset, reSearch 
+    };
   }
 }).mount('#app');
 </script>
