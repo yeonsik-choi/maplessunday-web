@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException
 
 from core.config import NEXON_API_KEY, NEXON_HTTP_TRUST_ENV
 from schemas.character_all import (
+    AbilityPresetUi,
     ArcaneRow,
     CharacterResponse,
     EquipTotalOptionUi,
@@ -71,6 +72,65 @@ def _equip_slot(item: dict) -> str:
 def _equip_rows(payload: dict) -> list:
     rows = payload.get("item_equipment") or payload.get("itemEquipment")
     return rows if isinstance(rows, list) else []
+
+
+def _equip_rows_for_key(payload: dict, snake_key: str, camel_key: str) -> list:
+    rows = payload.get(snake_key)
+    if rows is None:
+        rows = payload.get(camel_key)
+    return rows if isinstance(rows, list) else []
+
+
+def _preset_no_from_payload(payload: dict) -> int | None:
+    for k in ("preset_no", "presetNo"):
+        v = payload.get(k)
+        if v is None:
+            continue
+        if isinstance(v, int) and not isinstance(v, bool):
+            return v
+        n = _parse_int(v)
+        if n is not None:
+            return n
+    return None
+
+
+def _sorted_equips_from_rows(rows: list) -> list[EquipUi]:
+    filtered = [
+        row
+        for row in rows
+        if isinstance(row, dict) and _equip_slot(row) in _EQUIP_ORDER
+    ]
+    filtered.sort(key=lambda r: _EQUIP_ORDER[_equip_slot(r)])
+    return [_to_equip(r) for r in filtered]
+
+
+def _ability_preset_from_block(data: dict, snake_block: str, camel_block: str) -> AbilityPresetUi:
+    block = data.get(snake_block)
+    if block is None:
+        block = data.get(camel_block)
+    if not isinstance(block, dict):
+        return AbilityPresetUi()
+    gr = block.get("ability_preset_grade")
+    if gr is None:
+        gr = block.get("abilityPresetGrade")
+    grade = str(gr).strip() if gr is not None else None
+    if grade == "":
+        grade = None
+    rows = block.get("ability_info")
+    if rows is None:
+        rows = block.get("abilityInfo")
+    if not isinstance(rows, list):
+        rows = []
+    lines: list[str] = []
+    for i in range(3):
+        if i < len(rows) and isinstance(rows[i], dict):
+            v = rows[i].get("ability_value")
+            if v is None:
+                v = rows[i].get("abilityValue")
+            lines.append(str(v) if v is not None else "")
+        else:
+            lines.append("")
+    return AbilityPresetUi(grade=grade, lines=lines)
 
 
 def _parse_int(raw) -> int | None:
@@ -529,13 +589,32 @@ async def get_character_info(nickname: str):
     union_data = pick(5)
     rank_data = pick(6)
 
-    rows = [
-        row
-        for row in _equip_rows(equip_data)
-        if isinstance(row, dict) and _equip_slot(row) in _EQUIP_ORDER
-    ]
-    rows.sort(key=lambda r: _EQUIP_ORDER[_equip_slot(r)])
-    equips = [_to_equip(r) for r in rows]
+    equips = _sorted_equips_from_rows(_equip_rows(equip_data))
+
+    ep1 = _equip_rows_for_key(
+        equip_data, "item_equipment_preset_1", "itemEquipmentPreset1"
+    )
+    ep2 = _equip_rows_for_key(
+        equip_data, "item_equipment_preset_2", "itemEquipmentPreset2"
+    )
+    ep3 = _equip_rows_for_key(
+        equip_data, "item_equipment_preset_3", "itemEquipmentPreset3"
+    )
+    equips_preset_1 = _sorted_equips_from_rows(ep1)
+    equips_preset_2 = _sorted_equips_from_rows(ep2)
+    equips_preset_3 = _sorted_equips_from_rows(ep3)
+    equipment_preset_no = _preset_no_from_payload(equip_data)
+
+    ap1 = _ability_preset_from_block(
+        ability_data, "ability_preset_1", "abilityPreset1"
+    )
+    ap2 = _ability_preset_from_block(
+        ability_data, "ability_preset_2", "abilityPreset2"
+    )
+    ap3 = _ability_preset_from_block(
+        ability_data, "ability_preset_3", "abilityPreset3"
+    )
+    ability_preset_no = _preset_no_from_payload(ability_data)
 
     af = _final_stat_int(stat, _ARCANE_NAMES)
     tf = _final_stat_int(stat, _AUTH_NAMES)
@@ -573,4 +652,12 @@ async def get_character_info(nickname: str):
         arcane=arcane,
         abilities=abilities,
         equips=equips,
+        equipmentPresetNo=equipment_preset_no,
+        equipsPreset1=equips_preset_1,
+        equipsPreset2=equips_preset_2,
+        equipsPreset3=equips_preset_3,
+        abilityPresetNo=ability_preset_no,
+        abilityPreset1=ap1,
+        abilityPreset2=ap2,
+        abilityPreset3=ap3,
     )

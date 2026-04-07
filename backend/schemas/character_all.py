@@ -32,6 +32,15 @@ class EquipTotalOptionUi(BaseModel):
     boss_damage: int | None = Field(default=None, serialization_alias="bossDamage")
 
 
+class AbilityPresetUi(BaseModel):
+    """명성 어빌리티 저장 프리셋 1건 (등급 + 3줄 텍스트)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    grade: str | None = None
+    lines: list[str] = Field(default_factory=list)
+
+
 class EquipUi(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -102,3 +111,19 @@ class CharacterResponse(BaseModel):
     arcane: list[ArcaneRow] = Field(default_factory=list)
     abilities: list[str] = Field(default_factory=list)
     equips: list[EquipUi] = Field(default_factory=list)
+
+    equipmentPresetNo: int | None = Field(
+        default=None,
+        description="넥슨 item-equipment 응답의 preset_no (현재 선택 장비 프리셋)",
+    )
+    equipsPreset1: list[EquipUi] = Field(default_factory=list)
+    equipsPreset2: list[EquipUi] = Field(default_factory=list)
+    equipsPreset3: list[EquipUi] = Field(default_factory=list)
+
+    abilityPresetNo: int | None = Field(
+        default=None,
+        description="넥슨 ability 응답의 preset_no (현재 선택 어빌 프리셋)",
+    )
+    abilityPreset1: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
+    abilityPreset2: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
+    abilityPreset3: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
