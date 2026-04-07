@@ -247,8 +247,19 @@
     }
     .tooltip-close:hover { opacity: 1; }
 
-    .tooltip-stars { text-align: center; padding: 10px 0 5px; color: #FFD700; font-size: 0.8rem; letter-spacing: 1px; }
-    .tooltip-stars span:nth-child(5n):not(:last-child) { margin-right: 6px; }
+    .tooltip-stars { 
+      display: grid; 
+      grid-template-columns: repeat(15, max-content); 
+      justify-content: center;
+      row-gap: 2px; 
+      column-gap: 1px; 
+      padding: 10px 0 5px; 
+      color: #FFD700; 
+      font-size: 0.8rem; 
+      letter-spacing: 1px; 
+    }
+    .tooltip-stars span { line-height: 1; }
+    .tooltip-stars span:nth-child(5n):not(:nth-child(15n)) { margin-right: 6px; }
 
     .tooltip-title-area { text-align: center; padding: 0 15px 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); }
     .tooltip-soul-name { color: #ccff00; font-size: 0.8rem; font-weight: 700; margin-bottom: 2px; }
@@ -561,7 +572,7 @@
       
       <div class="tooltip-title-area">
         <div class="tooltip-soul-name" v-if="selectedEquip.soulName">{{ selectedEquip.soulName }}</div>
-        <div class="tooltip-item-name" :class="getGradeColor(selectedEquip.grade)">
+        <div class="tooltip-item-name c-white">
           {{ selectedEquip.name }}<span v-if="selectedEquip.scrollUpgrade"> (+{{ selectedEquip.scrollUpgrade }})</span>
         </div>
         <div class="tooltip-grade-text" :class="getGradeColor(selectedEquip.grade)" v-if="selectedEquip.grade">
