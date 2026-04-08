@@ -40,6 +40,14 @@ class AbilityPresetUi(BaseModel):
     lines: list[str] = Field(default_factory=list)
 
 
+class SetEffectUi(BaseModel):
+    model_config = _MODEL
+
+    name: str
+    count: int
+    effects: list[str] = Field(default_factory=list)
+
+
 class EquipUi(BaseModel):
     model_config = _MODEL
 
@@ -104,12 +112,14 @@ class CharacterResponse(BaseModel):
     combatPower: str | None = None
     arcane: list[ArcaneRow] = Field(default_factory=list)
 
-    equipmentPresetNo: int | None = None
-    equipsPreset1: list[EquipUi] = Field(default_factory=list)
-    equipsPreset2: list[EquipUi] = Field(default_factory=list)
-    equipsPreset3: list[EquipUi] = Field(default_factory=list)
-
     abilityPresetNo: int | None = None
     abilityPreset1: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
     abilityPreset2: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
     abilityPreset3: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
+
+    setEffects: list[SetEffectUi] = Field(default_factory=list)
+
+    equipmentPresetNo: int | None = None
+    equipsPreset1: list[EquipUi] = Field(default_factory=list)
+    equipsPreset2: list[EquipUi] = Field(default_factory=list)
+    equipsPreset3: list[EquipUi] = Field(default_factory=list)

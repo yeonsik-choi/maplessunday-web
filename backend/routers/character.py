@@ -13,6 +13,7 @@ from schemas.character_all import (
     CharacterResponse,
     EquipTotalOptionUi,
     EquipUi,
+    SetEffectUi,
 )
 from services.nexon_api import (
     fetch_character_ability,
@@ -21,6 +22,7 @@ from services.nexon_api import (
     fetch_character_stat,
     fetch_item_equipment,
     fetch_overall_ranking,
+    fetch_set_effect,
     fetch_union,
     get_ocid,
     get_yesterday,
@@ -40,6 +42,7 @@ _NEXON_FETCH_NAMES = (
     "popularity",
     "union",
     "ranking",
+    "set_effect",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -501,6 +504,36 @@ def _to_equip(item: dict) -> EquipUi:
     )
 
 
+def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
+    raw = _nget(payload, "set_effect", "setEffect")
+    if not isinstance(raw, list):
+        return []
+    out: list[SetEffectUi] = []
+    for s in raw:
+        if not isinstance(s, dict):
+            continue
+        info = _nget(s, "set_effect_info", "setEffectInfo")
+        if not isinstance(info, list) or not info:
+            continue
+        name = str(_nget(s, "set_name", "setName") or "")
+        cnt_raw = _nget(s, "total_set_count", "totalSetCount")
+        count = _parse_int(cnt_raw) if cnt_raw is not None else 0
+        if count is None:
+            count = 0
+        effects: list[str] = []
+        for row in info:
+            if not isinstance(row, dict):
+                continue
+            opt = _nget(row, "set_option", "setOption")
+            if opt is None:
+                continue
+            t = str(opt).strip()
+            if t:
+                effects.append(t)
+        out.append(SetEffectUi(name=name, count=count, effects=effects))
+    return out
+
+
 @router.get(
     "/character",
     response_model=CharacterResponse,
@@ -533,6 +566,7 @@ async def get_character_info(nickname: str):
                 fetch_character_popularity(client, ocid, yesterday),
                 fetch_union(client, ocid, yesterday),
                 fetch_overall_ranking(client, ocid, yesterday),
+                fetch_set_effect(client, ocid, yesterday),
                 return_exceptions=True,
             )
             results = list(batch1) + list(batch2)
@@ -569,6 +603,7 @@ async def get_character_info(nickname: str):
     pop_data = pick(4)
     union_data = pick(5)
     rank_data = pick(6)
+    set_effect_data = pick(7)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
     preset_equip_lists = [
@@ -587,6 +622,7 @@ async def get_character_info(nickname: str):
         for s, c in _ABILITY_PRESET_KEYS
     )
     ability_preset_no = _preset_no_from_payload(ability_data)
+    set_effects = _set_effects_ui(set_effect_data)
 
     af = _final_stat_int(stat, _ARCANE_NAMES)
     tf = _final_stat_int(stat, _AUTH_NAMES)
@@ -620,12 +656,13 @@ async def get_character_info(nickname: str):
         expPercent=_parse_exp_pct(basic.get("character_exp_rate")),
         combatPower=disp or None,
         arcane=arcane,
-        equipmentPresetNo=equipment_preset_no,
-        equipsPreset1=ep0,
-        equipsPreset2=ep1,
-        equipsPreset3=ep2,
         abilityPresetNo=ability_preset_no,
         abilityPreset1=ap1,
         abilityPreset2=ap2,
         abilityPreset3=ap3,
+        setEffects=set_effects,
+        equipmentPresetNo=equipment_preset_no,
+        equipsPreset1=ep0,
+        equipsPreset2=ep1,
+        equipsPreset3=ep2,
     )

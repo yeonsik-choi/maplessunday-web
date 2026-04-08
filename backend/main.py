@@ -8,7 +8,7 @@ app = FastAPI(title="메이플스토리 캐릭터 검색 API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 운영 시 특정 오리진으로 제한 권장
     allow_methods=["*"],
     allow_headers=["*"],
 )
