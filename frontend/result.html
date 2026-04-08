@@ -299,6 +299,46 @@
     /* 기존 장비 카드 마우스 오버 효과 추가 */
     .equip-card { cursor: pointer; }
     .equip-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,165,0,0.2); }
+    
+    /* ── 세트 효과 ── */
+    .set-effect-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .set-effect-item {
+      background: #fff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .set-effect-item:hover { 
+      border-color: rgba(255,165,0,0.3); 
+      box-shadow: 0 2px 8px rgba(255,165,0,0.08); 
+    }
+    .set-effect-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; cursor: pointer;
+    }
+    .set-effect-name { font-size: 0.85rem; font-weight: 700; color: var(--maple-brown); }
+    .set-effect-count {
+      background: #F0F4FF; /* 연한 파란색 배경 */
+      color: #2563EB;      /* 짙은 파란색 텍스트 */
+      font-size: 0.75rem; font-weight: 800;
+      padding: 4px 8px; border-radius: 6px;
+    }
+    .set-effect-details {
+      padding: 0 14px 12px;
+      background: #FAFAFA;
+      border-top: 1px dashed rgba(0,0,0,0.06);
+    }
+    .set-effect-details ul { 
+      list-style: none; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; 
+    }
+    .set-effect-details li { 
+      font-size: 0.75rem; color: rgba(92,46,0,0.75); line-height: 1.5; 
+      display: flex; gap: 6px; word-break: keep-all; 
+    }
+    .set-effect-details li::before { 
+      content: '•'; color: var(--maple-orange); font-weight: bold; 
+    }
 
     /* ── Footer ── */
     .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; }
@@ -432,7 +472,7 @@
               </div>
 
               <div class="info-card">
-                <div class="section-title" style="margin-bottom:11px;">🔮 아케인 / 어센틱</div>
+                <div class="section-title" style="margin-bottom:11px;">아케인 / 어센틱</div>
                 <div class="info-row" v-for="r in char.arcane" :key="r.k">
                   <span class="info-key">{{ r.k }}</span><span class="info-val highlight">{{ r.v }}</span>
                 </div>
@@ -440,7 +480,7 @@
 
               <div class="info-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 11px;">
-                  <div class="section-title" style="margin-bottom: 0;">✨ 어빌리티</div>
+                  <div class="section-title" style="margin-bottom: 0;">어빌리티</div>
                   <div class="preset-btns">
                     <button class="preset-btn" :class="{ active: activeAbilityPreset === '1' }" @click="activeAbilityPreset = '1'">1</button>
                     <button class="preset-btn" :class="{ active: activeAbilityPreset === '2' }" @click="activeAbilityPreset = '2'">2</button>
@@ -462,6 +502,27 @@
                     <span style="font-size:.82rem;">{{ line }}</span>
                   </div>
                 </template>
+              </div>
+              <div class="info-card">
+                <div class="section-title" style="margin-bottom: 0;">적용중인 세트 효과</div>
+                
+                <div class="set-effect-list" v-if="char && char.setEffects && char.setEffects.length > 0">
+                  <div class="set-effect-item" v-for="(set, idx) in char.setEffects" :key="idx">
+                    <div class="set-effect-header" @click="toggleSetEffect(idx)">
+                      <span class="set-effect-name">{{ set.name }}</span>
+                      <span class="set-effect-count">{{ set.count }}셋</span>
+                    </div>
+                    <div class="set-effect-details" v-show="expandedSetIdx === idx">
+                      <ul>
+                        <li v-for="(eff, eIdx) in set.effects" :key="eIdx">{{ eff }}</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                
+                <div v-else style="font-size: 0.82rem; color: rgba(92,46,0,0.5); text-align: center; padding: 20px 0 10px;">
+                  적용중인 세트 효과가 없습니다.
+                </div>
               </div>
             </div>
 
@@ -691,6 +752,18 @@ createApp({
     const activeAbilityPreset = ref('1');
     const activeEquipPreset = ref('1'); // 장비 프리셋 번호
 
+    // ===== 추가: 세트 효과 열림/닫힘 상태 관리 =====
+    const expandedSetIdx = ref(null);
+
+    function toggleSetEffect(idx) {
+      // 이미 열려있는 항목을 클릭하면 닫고, 아니면 해당 항목을 엽니다.
+      if (expandedSetIdx.value === idx) {
+        expandedSetIdx.value = null;
+      } else {
+        expandedSetIdx.value = idx;
+      }
+    }
+
     // --- 툴팁(모달) 관련 상태 및 함수 ---
     const selectedEquip = ref(null);
 
@@ -831,7 +904,10 @@ createApp({
       // 툴팁 관련 리턴 변수/함수들 추가
       selectedEquip, openTooltip, closeTooltip, 
       getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine,
-      formatTopSoulName
+      formatTopSoulName,
+      // ===== 추가: 세트 효과 리턴 =====
+      expandedSetIdx, toggleSetEffect
+
     };
   }
 }).mount('#app');
