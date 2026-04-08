@@ -136,3 +136,19 @@ async def fetch_set_effect(
     return await _fetch_ocid_date(
         client, "character/set-effect", ocid, date, "세트효과 조회 실패"
     )
+
+
+async def fetch_notice_list(client: httpx.AsyncClient) -> dict:
+    return await _get_json(client, "notice", {}, "공지 목록 조회 실패")
+
+
+async def fetch_notice_update_list(client: httpx.AsyncClient) -> dict:
+    return await _get_json(client, "notice-update", {}, "업데이트 공지 목록 조회 실패")
+
+
+async def fetch_notice_event_list(client: httpx.AsyncClient) -> dict:
+    return await _get_json(client, "notice-event", {}, "이벤트 공지 목록 조회 실패")
+
+
+async def fetch_notice_cashshop_list(client: httpx.AsyncClient) -> dict:
+    return await _get_json(client, "notice-cashshop", {}, "캐시샵 공지 목록 조회 실패")
