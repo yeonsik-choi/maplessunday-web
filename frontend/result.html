@@ -287,6 +287,11 @@
     .pot-icon.E { background: #8E44AD; color: #fff; border: 1px solid #732D91; }
     .pot-icon.R { background: #2980B9; color: #fff; border: 1px solid #1F618D; }
     .pot-line { color: #fff; margin-bottom: 2px; }
+    /* 툴팁 잠재능력 구분선 */
+    .pot-divider {
+      border-top: 1px dashed rgba(255, 255, 255, 0.3);
+      margin: 10px 0;
+    }
 
     .tooltip-soul-area { padding: 15px; font-size: 0.8rem; }
 
@@ -571,7 +576,7 @@
       </div>
       
       <div class="tooltip-title-area">
-        <div class="tooltip-soul-name" v-if="selectedEquip.soulName">{{ selectedEquip.soulName }}</div>
+        <div class="tooltip-soul-name" v-if="selectedEquip.soulName">{{ formatTopSoulName(selectedEquip.soulName) }}</div>
         <div class="tooltip-item-name c-white">
           {{ selectedEquip.name }}<span v-if="selectedEquip.scrollUpgrade"> (+{{ selectedEquip.scrollUpgrade }})</span>
         </div>
@@ -585,12 +590,12 @@
           <img v-if="selectedEquip.itemIcon" :src="selectedEquip.itemIcon" :alt="selectedEquip.name" />
         </div>
         <div class="tooltip-req">
-          <div style="color: #fff; margin-bottom: 4px;">장비분류 : {{ selectedEquip.slot }}</div>
           <div v-if="selectedEquip.baseEquipmentLevel">REQ LEV : {{ selectedEquip.baseEquipmentLevel }}</div>
         </div>
       </div>
 
       <div class="tooltip-stats-area">
+        <div style="color: #fff; margin-bottom: 4px;">장비분류 : {{ selectedEquip.slot }}</div>
         <div v-html="renderStatLine('INT', 'int')"></div>
         <div v-html="renderStatLine('LUK', 'luk')"></div>
         <div v-html="renderStatLine('STR', 'str')"></div>
@@ -616,7 +621,9 @@
           <div class="pot-line" v-for="(pot, idx) in selectedEquip.potential" :key="'p'+idx">{{ pot }}</div>
         </div>
         
-        <div v-if="selectedEquip.additionalPotential && selectedEquip.additionalPotential.length > 0" style="margin-top: 10px;">
+        <div v-if="(selectedEquip.potential && selectedEquip.potential.length > 0) && (selectedEquip.additionalPotential && selectedEquip.additionalPotential.length > 0)" class="pot-divider"></div>
+        
+        <div v-if="selectedEquip.additionalPotential && selectedEquip.additionalPotential.length > 0">
           <div class="pot-title" :class="getGradeColor(selectedEquip.additionalGrade)">
             <span class="pot-icon" :class="getGradeIcon(selectedEquip.additionalGrade)">{{ getGradeIcon(selectedEquip.additionalGrade) }}</span> 에디셔널 잠재옵션
           </div>
@@ -625,7 +632,7 @@
       </div>
 
       <div class="tooltip-soul-area" v-if="selectedEquip.soulName || selectedEquip.soulOption">
-        <div style="color: #ffcc00; font-weight: 700; margin-bottom: 4px;">{{ selectedEquip.soulName }} 적용</div>
+        <div style="color: #ffcc00; font-weight: 700; margin-bottom: 4px;">{{ selectedEquip.soulName.replace(' 적용', '') }} 적용</div>
         <div style="color: #fff;">{{ selectedEquip.soulOption }}</div>
       </div>
     </div>
@@ -716,6 +723,12 @@ createApp({
       if (g === 'epic') return 'E';
       if (g === 'rare') return 'R';
       return '';
+    }
+
+    // ' 소울 적용' 또는 ' 소울'이라는 단어를 제거해 줌
+    function formatTopSoulName(name) {
+      if (!name) return '';
+      return name.replace(/\s*소울\s*적용$/, '').replace(/\s*소울$/, '');
     }
 
     // 기본 스탯 처리 함수 (INT, STR 등)
@@ -816,7 +829,8 @@ createApp({
       
       // 툴팁 관련 리턴 변수/함수들 추가
       selectedEquip, openTooltip, closeTooltip, 
-      getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine
+      getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine,
+      formatTopSoulName
     };
   }
 }).mount('#app');
