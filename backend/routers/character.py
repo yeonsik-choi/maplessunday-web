@@ -30,8 +30,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["캐릭터"])
 
 _NEXON_TIMEOUT_SEC = 30.0
+_NEXON_SLEEP_SEC = 1.0
 
-# equips에 포함·정렬 순서 (넥슨 item_equipment_slot 한글값 기준)
+_NEXON_FETCH_NAMES = (
+    "basic",
+    "stat",
+    "ability",
+    "item_equipment",
+    "popularity",
+    "union",
+    "ranking",
+)
+
 _EQUIP_SLOTS: tuple[str, ...] = (
     "무기",
     "보조무기",
@@ -47,7 +57,7 @@ _EQUIP_SLOTS: tuple[str, ...] = (
     "눈장식",
     "귀고리",
     "벨트",
-    "펜던트",  # 목걸이 슬롯 1
+    "펜던트",
     "펜던트2",
     "반지1",
     "반지2",
@@ -63,35 +73,73 @@ _EQUIP_ORDER: dict[str, int] = {s: i for i, s in enumerate(_EQUIP_SLOTS)}
 _ARCANE_NAMES = ("아케인포스", "아케인 포스")
 _AUTH_NAMES = ("어센틱포스", "어센틱 포스")
 
+_POTENTIAL_PAIRS = (
+    ("potential_option_1", "potentialOption1"),
+    ("potential_option_2", "potentialOption2"),
+    ("potential_option_3", "potentialOption3"),
+)
+_ADDITIONAL_POTENTIAL_PAIRS = (
+    ("additional_potential_option_1", "additionalPotentialOption1"),
+    ("additional_potential_option_2", "additionalPotentialOption2"),
+    ("additional_potential_option_3", "additionalPotentialOption3"),
+)
+_EQUIP_PRESET_KEYS = (
+    ("item_equipment_preset_1", "itemEquipmentPreset1"),
+    ("item_equipment_preset_2", "itemEquipmentPreset2"),
+    ("item_equipment_preset_3", "itemEquipmentPreset3"),
+)
+_ABILITY_PRESET_KEYS = (
+    ("ability_preset_1", "abilityPreset1"),
+    ("ability_preset_2", "abilityPreset2"),
+    ("ability_preset_3", "abilityPreset3"),
+)
+
+
+def _nget(d: dict | None, *keys: str) -> Any:
+    if not d:
+        return None
+    for k in keys:
+        v = d.get(k)
+        if v is not None:
+            return v
+    return None
+
+
+def _nexon_str(d: dict | None, *keys: str) -> str | None:
+    if not d:
+        return None
+    for k in keys:
+        v = d.get(k)
+        if v is None:
+            continue
+        t = str(v).strip()
+        if t:
+            return t
+    return None
+
 
 def _equip_slot(item: dict) -> str:
-    s = item.get("item_equipment_slot") or item.get("itemEquipmentSlot")
-    return str(s).strip() if s is not None else ""
+    v = _nget(item, "item_equipment_slot", "itemEquipmentSlot")
+    return str(v).strip() if v is not None else ""
 
 
 def _equip_rows(payload: dict) -> list:
-    rows = payload.get("item_equipment") or payload.get("itemEquipment")
+    rows = _nget(payload, "item_equipment", "itemEquipment")
     return rows if isinstance(rows, list) else []
 
 
 def _equip_rows_for_key(payload: dict, snake_key: str, camel_key: str) -> list:
-    rows = payload.get(snake_key)
-    if rows is None:
-        rows = payload.get(camel_key)
+    rows = _nget(payload, snake_key, camel_key)
     return rows if isinstance(rows, list) else []
 
 
 def _preset_no_from_payload(payload: dict) -> int | None:
-    for k in ("preset_no", "presetNo"):
-        v = payload.get(k)
-        if v is None:
-            continue
-        if isinstance(v, int) and not isinstance(v, bool):
-            return v
-        n = _parse_int(v)
-        if n is not None:
-            return n
-    return None
+    v = _nget(payload, "preset_no", "presetNo")
+    if v is None:
+        return None
+    if isinstance(v, int) and not isinstance(v, bool):
+        return v
+    return _parse_int(v)
 
 
 def _sorted_equips_from_rows(rows: list) -> list[EquipUi]:
@@ -104,30 +152,43 @@ def _sorted_equips_from_rows(rows: list) -> list[EquipUi]:
     return [_to_equip(r) for r in filtered]
 
 
-def _ability_preset_from_block(data: dict, snake_block: str, camel_block: str) -> AbilityPresetUi:
-    block = data.get(snake_block)
-    if block is None:
-        block = data.get(camel_block)
+def _finalize_equipment_presets(
+    preset_no: int | None,
+    equipment_presets: list[list[EquipUi]],
+    item_equipment: list[EquipUi],
+) -> list[list[EquipUi]]:
+    out = [list(p) for p in equipment_presets]
+    while len(out) < 3:
+        out.append([])
+    out = out[:3]
+    if item_equipment:
+        if preset_no in (1, 2, 3):
+            i = preset_no - 1
+            if not out[i]:
+                out[i] = list(item_equipment)
+        elif not any(out):
+            out[0] = list(item_equipment)
+    return out
+
+
+def _ability_preset_from_block(
+    data: dict, snake_block: str, camel_block: str
+) -> AbilityPresetUi:
+    block = _nget(data, snake_block, camel_block)
     if not isinstance(block, dict):
         return AbilityPresetUi()
-    gr = block.get("ability_preset_grade")
-    if gr is None:
-        gr = block.get("abilityPresetGrade")
+    gr = _nget(block, "ability_preset_grade", "abilityPresetGrade")
     grade = str(gr).strip() if gr is not None else None
     if grade == "":
         grade = None
-    rows = block.get("ability_info")
-    if rows is None:
-        rows = block.get("abilityInfo")
+    rows = _nget(block, "ability_info", "abilityInfo")
     if not isinstance(rows, list):
         rows = []
     lines: list[str] = []
     for i in range(3):
         if i < len(rows) and isinstance(rows[i], dict):
-            v = rows[i].get("ability_value")
-            if v is None:
-                v = rows[i].get("abilityValue")
-            lines.append(str(v) if v is not None else "")
+            av = _nget(rows[i], "ability_value", "abilityValue")
+            lines.append(str(av) if av is not None else "")
         else:
             lines.append("")
     return AbilityPresetUi(grade=grade, lines=lines)
@@ -169,17 +230,6 @@ def _combat_power_raw(stat: dict) -> str | None:
         if isinstance(row, dict) and row.get("stat_name") == "전투력":
             return row.get("stat_value")
     return None
-
-
-def _ability_lines(data: dict) -> tuple[str | None, str | None, str | None]:
-    rows = data.get("ability_info") or []
-    out: list[str | None] = [None, None, None]
-    for i in range(3):
-        if i < len(rows) and isinstance(rows[i], dict):
-            v = rows[i].get("ability_value")
-            if v is not None:
-                out[i] = str(v)
-    return out[0], out[1], out[2]
 
 
 def _rank_int(payload: dict) -> int | None:
@@ -283,49 +333,21 @@ def _grade_class(raw) -> str | None:
 
 
 def _item_grade(item: dict) -> str | None:
-    for key in ("potential_option_grade", "potentialOptionGrade"):
-        g = _grade_class(item.get(key))
-        if g:
-            return g
-    return None
+    return _grade_class(_nget(item, "potential_option_grade", "potentialOptionGrade"))
 
 
 def _item_additional_grade(item: dict) -> str | None:
-    for key in ("additional_potential_option_grade", "additionalPotentialOptionGrade"):
-        g = _grade_class(item.get(key))
-        if g:
-            return g
-    return None
+    return _grade_class(
+        _nget(item, "additional_potential_option_grade", "additionalPotentialOptionGrade")
+    )
 
 
-def _item_potential(item: dict) -> list[str]:
+def _triple_option_lines(
+    item: dict, pairs: tuple[tuple[str, str], ...]
+) -> list[str]:
     out: list[str] = []
-    for sk, ck in (
-        ("potential_option_1", "potentialOption1"),
-        ("potential_option_2", "potentialOption2"),
-        ("potential_option_3", "potentialOption3"),
-    ):
-        v = item.get(sk)
-        if v is None:
-            v = item.get(ck)
-        if v is None:
-            continue
-        t = str(v).strip()
-        if t:
-            out.append(t)
-    return out
-
-
-def _item_additional_potential(item: dict) -> list[str]:
-    out: list[str] = []
-    for sk, ck in (
-        ("additional_potential_option_1", "additionalPotentialOption1"),
-        ("additional_potential_option_2", "additionalPotentialOption2"),
-        ("additional_potential_option_3", "additionalPotentialOption3"),
-    ):
-        v = item.get(sk)
-        if v is None:
-            v = item.get(ck)
+    for sk, ck in pairs:
+        v = _nget(item, sk, ck)
         if v is None:
             continue
         t = str(v).strip()
@@ -335,14 +357,11 @@ def _item_additional_potential(item: dict) -> list[str]:
 
 
 def _subdoc(item: dict, snake: str, camel: str) -> dict | None:
-    v = item.get(snake)
-    if v is None:
-        v = item.get(camel)
+    v = _nget(item, snake, camel)
     return v if isinstance(v, dict) else None
 
 
 def _snake_to_camel_key(key: str) -> str:
-    """snake_case 키만 camelCase로. 언더스코어 없으면 그대로(이미 camelCase인 경우)."""
     if not key or not isinstance(key, str):
         return key
     if "_" not in key:
@@ -351,12 +370,11 @@ def _snake_to_camel_key(key: str) -> str:
     if not parts:
         return key
     return parts[0].lower() + "".join(
-        (p[:1].upper() + p[1:].lower()) if p else "" for p in parts[1:]
+        (p[:1].upper() + p[1:]) if p else "" for p in parts[1:]
     )
 
 
 def _deep_camelize_keys(obj: Any) -> Any:
-    """dict/list 중첩 구조의 dict 키를 재귀적으로 camelCase로 통일."""
     if isinstance(obj, dict):
         return {
             _snake_to_camel_key(k) if isinstance(k, str) else k: _deep_camelize_keys(v)
@@ -368,7 +386,6 @@ def _deep_camelize_keys(obj: Any) -> Any:
 
 
 def _scalar_to_json_number(v: Any) -> Any:
-    """옵션 dict 리프: 전부 숫자인 문자열만 int/float로 변환."""
     if isinstance(v, bool):
         return v
     if isinstance(v, int):
@@ -405,39 +422,13 @@ def _camel_equip_subdoc(item: dict, snake: str, camel: str) -> dict[str, Any] | 
 
 
 def _cuttable_count_ui(item: dict) -> int | None:
-    for k in ("cuttable_count", "cuttableCount"):
-        v = item.get(k)
-        if v is None:
-            continue
-        n = _equip_stat_int(v)
-        if n is None:
-            continue
-        if n == 255:
-            return None
-        return n
-    return None
-
-
-def _item_str_top(item: dict, snake: str, camel: str) -> str | None:
-    for k in (snake, camel):
-        v = item.get(k)
-        if v is not None:
-            t = str(v).strip()
-            if t:
-                return t
-    return None
-
-
-def _nested_str(parent: dict | None, snake: str, camel: str) -> str | None:
-    if not parent:
+    v = _nget(item, "cuttable_count", "cuttableCount")
+    if v is None:
         return None
-    for k in (snake, camel):
-        v = parent.get(k)
-        if v is not None:
-            t = str(v).strip()
-            if t:
-                return t
-    return None
+    n = _equip_stat_int(v)
+    if n is None or n == 255:
+        return None
+    return n
 
 
 def _total_option_ui(item: dict) -> EquipTotalOptionUi | None:
@@ -445,13 +436,8 @@ def _total_option_ui(item: dict) -> EquipTotalOptionUi | None:
     if not raw:
         return None
 
-    def gi(sn: str, *cams: str) -> int | None:
-        for k in (sn,) + cams:
-            v = raw.get(k)
-            n = _equip_stat_int(v)
-            if n is not None:
-                return n
-        return None
+    def gi(*keys: str) -> int | None:
+        return _equip_stat_int(_nget(raw, *keys))
 
     ui = EquipTotalOptionUi(
         str_bonus=gi("str", "STR"),
@@ -473,11 +459,9 @@ def _total_option_ui(item: dict) -> EquipTotalOptionUi | None:
 
 
 def _to_equip(item: dict) -> EquipUi:
-    name = item.get("item_name")
-    if name is None:
-        name = item.get("itemName")
-    pots = _item_potential(item)
-    add_pots = _item_additional_potential(item)
+    name = _nget(item, "item_name", "itemName")
+    pots = _triple_option_lines(item, _POTENTIAL_PAIRS)
+    add_pots = _triple_option_lines(item, _ADDITIONAL_POTENTIAL_PAIRS)
     base_block = _subdoc(item, "item_base_option", "itemBaseOption")
     total_opt = _total_option_ui(item)
     apots = add_pots if add_pots else None
@@ -487,8 +471,6 @@ def _to_equip(item: dict) -> EquipUi:
         if base_block
         else None
     )
-    shape_nm = _item_str_top(item, "item_shape_name", "itemShapeName")
-    has_moru = (shape_nm != name) if shape_nm and name else False
 
     return EquipUi(
         slot=_equip_slot(item) or None,
@@ -496,13 +478,11 @@ def _to_equip(item: dict) -> EquipUi:
         stars=_parse_stars(item.get("starforce")),
         grade=_item_grade(item),
         potential=pots if pots else None,
-        item_icon=_item_str_top(item, "item_icon", "itemIcon"),
+        item_icon=_nexon_str(item, "item_icon", "itemIcon"),
         base_equipment_level=_equip_stat_int(
-            _nested_str(base_block, "base_equipment_level", "baseEquipmentLevel")
+            _nexon_str(base_block, "base_equipment_level", "baseEquipmentLevel")
         ),
-        scroll_upgrade=_parse_int(
-            _item_str_top(item, "scroll_upgrade", "scrollUpgrade")
-        ),
+        scroll_upgrade=_parse_int(_nexon_str(item, "scroll_upgrade", "scrollUpgrade")),
         additional_grade=_item_additional_grade(item),
         additional_potential=apots,
         total_option=total_opt,
@@ -513,22 +493,18 @@ def _to_equip(item: dict) -> EquipUi:
             item, "item_starforce_option", "itemStarforceOption"
         ),
         scroll_upgradeable_count=_parse_int(
-            _item_str_top(item, "scroll_upgradeable_count", "scrollUpgradeableCount")
-        ),
-        scroll_resilience_count=_parse_int(
-            _item_str_top(item, "scroll_resilience_count", "scrollResilienceCount")
+            _nexon_str(item, "scroll_upgradeable_count", "scrollUpgradeableCount")
         ),
         cuttable_count=_cuttable_count_ui(item),
-        soul_name=_item_str_top(item, "soul_name", "soulName"),
-        soul_option=_item_str_top(item, "soul_option", "soulOption"),
-        shape_name=shape_nm,
-        has_moru=has_moru,
+        soul_name=_nexon_str(item, "soul_name", "soulName"),
+        soul_option=_nexon_str(item, "soul_option", "soulOption"),
     )
 
 
 @router.get(
     "/character",
     response_model=CharacterResponse,
+    response_model_by_alias=True,
     responses={
         404: {"description": "해당 닉네임 캐릭터 없음"},
         429: {"description": "넥슨 API rate limit"},
@@ -551,7 +527,7 @@ async def get_character_info(nickname: str):
                 fetch_character_ability(client, ocid, yesterday),
                 return_exceptions=True,
             )
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(_NEXON_SLEEP_SEC)
             batch2 = await asyncio.gather(
                 fetch_item_equipment(client, ocid, yesterday),
                 fetch_character_popularity(client, ocid, yesterday),
@@ -575,7 +551,12 @@ async def get_character_info(nickname: str):
 
     for i, r in enumerate(results):
         if isinstance(r, Exception):
-            logger.warning("nexon fetch failed idx=%s: %s", i, r)
+            name = (
+                _NEXON_FETCH_NAMES[i]
+                if i < len(_NEXON_FETCH_NAMES)
+                else str(i)
+            )
+            logger.warning("nexon fetch failed %s: %s", name, r)
 
     def pick(i: int) -> dict:
         r = results[i]
@@ -589,37 +570,26 @@ async def get_character_info(nickname: str):
     union_data = pick(5)
     rank_data = pick(6)
 
-    equips = _sorted_equips_from_rows(_equip_rows(equip_data))
-
-    ep1 = _equip_rows_for_key(
-        equip_data, "item_equipment_preset_1", "itemEquipmentPreset1"
-    )
-    ep2 = _equip_rows_for_key(
-        equip_data, "item_equipment_preset_2", "itemEquipmentPreset2"
-    )
-    ep3 = _equip_rows_for_key(
-        equip_data, "item_equipment_preset_3", "itemEquipmentPreset3"
-    )
-    equips_preset_1 = _sorted_equips_from_rows(ep1)
-    equips_preset_2 = _sorted_equips_from_rows(ep2)
-    equips_preset_3 = _sorted_equips_from_rows(ep3)
+    item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
+    preset_equip_lists = [
+        _sorted_equips_from_rows(_equip_rows_for_key(equip_data, sk, ck))
+        for sk, ck in _EQUIP_PRESET_KEYS
+    ]
     equipment_preset_no = _preset_no_from_payload(equip_data)
+    equipment_presets = _finalize_equipment_presets(
+        equipment_preset_no,
+        preset_equip_lists,
+        item_equipment_equips,
+    )
 
-    ap1 = _ability_preset_from_block(
-        ability_data, "ability_preset_1", "abilityPreset1"
-    )
-    ap2 = _ability_preset_from_block(
-        ability_data, "ability_preset_2", "abilityPreset2"
-    )
-    ap3 = _ability_preset_from_block(
-        ability_data, "ability_preset_3", "abilityPreset3"
+    ap1, ap2, ap3 = tuple(
+        _ability_preset_from_block(ability_data, s, c)
+        for s, c in _ABILITY_PRESET_KEYS
     )
     ability_preset_no = _preset_no_from_payload(ability_data)
 
     af = _final_stat_int(stat, _ARCANE_NAMES)
     tf = _final_stat_int(stat, _AUTH_NAMES)
-    ab1, ab2, ab3 = _ability_lines(ability_data)
-    abilities = [ab1 or "", ab2 or "", ab3 or ""]
 
     arcane: list[ArcaneRow] = []
     if af is not None:
@@ -632,10 +602,10 @@ async def get_character_info(nickname: str):
 
     rank_n = _rank_int(rank_data)
     pop_n = pop_data.get("popularity")
-    union_n = union_data.get("union_level")
-    if union_n is None:
-        union_n = union_data.get("unionLevel")
+    union_n = _nget(union_data, "union_level", "unionLevel")
     union_level_str = _fmt_thousands(union_n) if union_n is not None else None
+
+    ep0, ep1, ep2 = equipment_presets[0], equipment_presets[1], equipment_presets[2]
 
     return CharacterResponse(
         imageUrl=basic.get("character_image"),
@@ -650,12 +620,10 @@ async def get_character_info(nickname: str):
         expPercent=_parse_exp_pct(basic.get("character_exp_rate")),
         combatPower=disp or None,
         arcane=arcane,
-        abilities=abilities,
-        equips=equips,
         equipmentPresetNo=equipment_preset_no,
-        equipsPreset1=equips_preset_1,
-        equipsPreset2=equips_preset_2,
-        equipsPreset3=equips_preset_3,
+        equipsPreset1=ep0,
+        equipsPreset2=ep1,
+        equipsPreset3=ep2,
         abilityPresetNo=ability_preset_no,
         abilityPreset1=ap1,
         abilityPreset2=ap2,

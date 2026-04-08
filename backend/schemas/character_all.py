@@ -4,17 +4,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 EquipGrade = Literal["rare", "epic", "unique", "legendary"]
 
+_MODEL = ConfigDict(extra="ignore", populate_by_name=True)
+
 
 class ArcaneRow(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = _MODEL
+
     k: str
     v: str
 
 
 class EquipTotalOptionUi(BaseModel):
-    """item_total_option — 스탯 수치(정수)."""
-
-    model_config = ConfigDict(extra="ignore")
+    model_config = _MODEL
 
     str_bonus: int | None = Field(default=None, serialization_alias="str")
     dex: int | None = None
@@ -33,16 +34,14 @@ class EquipTotalOptionUi(BaseModel):
 
 
 class AbilityPresetUi(BaseModel):
-    """명성 어빌리티 저장 프리셋 1건 (등급 + 3줄 텍스트)."""
-
-    model_config = ConfigDict(extra="ignore")
+    model_config = _MODEL
 
     grade: str | None = None
     lines: list[str] = Field(default_factory=list)
 
 
 class EquipUi(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = _MODEL
 
     slot: str | None = None
     name: str | None = None
@@ -84,18 +83,13 @@ class EquipUi(BaseModel):
     scroll_upgradeable_count: int | None = Field(
         default=None, serialization_alias="scrollUpgradeableCount"
     )
-    scroll_resilience_count: int | None = Field(
-        default=None, serialization_alias="scrollResilienceCount"
-    )
     cuttable_count: int | None = Field(default=None, serialization_alias="cuttableCount")
     soul_name: str | None = Field(default=None, serialization_alias="soulName")
     soul_option: str | None = Field(default=None, serialization_alias="soulOption")
-    shape_name: str | None = Field(default=None, serialization_alias="shapeName")
-    has_moru: bool = Field(default=False, serialization_alias="hasMoru")
 
 
 class CharacterResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    model_config = _MODEL
 
     imageUrl: str | None = None
     name: str | None = None
@@ -109,21 +103,13 @@ class CharacterResponse(BaseModel):
     expPercent: float | None = None
     combatPower: str | None = None
     arcane: list[ArcaneRow] = Field(default_factory=list)
-    abilities: list[str] = Field(default_factory=list)
-    equips: list[EquipUi] = Field(default_factory=list)
 
-    equipmentPresetNo: int | None = Field(
-        default=None,
-        description="넥슨 item-equipment 응답의 preset_no (현재 선택 장비 프리셋)",
-    )
+    equipmentPresetNo: int | None = None
     equipsPreset1: list[EquipUi] = Field(default_factory=list)
     equipsPreset2: list[EquipUi] = Field(default_factory=list)
     equipsPreset3: list[EquipUi] = Field(default_factory=list)
 
-    abilityPresetNo: int | None = Field(
-        default=None,
-        description="넥슨 ability 응답의 preset_no (현재 선택 어빌 프리셋)",
-    )
+    abilityPresetNo: int | None = None
     abilityPreset1: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
     abilityPreset2: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
     abilityPreset3: AbilityPresetUi = Field(default_factory=AbilityPresetUi)
