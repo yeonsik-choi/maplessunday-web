@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>메이플 썬데이 - 정보센터</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Black+Han+Sans&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    /* ── BASE ── */
+    :root {
+      --maple-orange: #FF8C42; --maple-yellow: #FFD94A; --maple-pink: #FF6B9D;
+      --maple-dark: #FFF9E6; --maple-brown: #5C2E00; --maple-gold: #F0A500;
+      --maple-light: #3D2B1F; --maple-cream: #5C2E00;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; transition: background-color 0.4s ease; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #FDFDFD; color: var(--maple-light); }
+    #app { display: flex; flex-direction: column; min-height: 100vh; position: relative; }
+
+    /* ── Header ── */
+    header {
+      position: relative; z-index: 20; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,248,236,0.9) 100%);
+      border-bottom: 2px solid rgba(255,165,0,0.25); backdrop-filter: blur(10px);
+    }
+    .header-inner { width: 100%; max-width: 1100px; display: flex; flex-direction: column; padding: 0 24px; }
+    .header-line { width: 100%; height: 1px; background: rgba(255,165,0,0.15); flex-shrink: 0; }
+    .header-row1 { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; }
+    .header-row2 { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .logo {
+      font-family: 'Black Han Sans', sans-serif; font-size: 1.55rem;
+      background: linear-gradient(135deg, var(--maple-orange), #FF3300);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 4px rgba(255,107,0,0.2));
+      cursor: pointer; display: flex; align-items: center; gap: 8px; text-decoration: none;
+    }
+    .logo-icon { font-size: 1.6rem; -webkit-text-fill-color: initial; filter: drop-shadow(0 0 8px rgba(255,107,0,0.4)); }
+    nav a {
+      color: rgba(92,46,0,0.7); text-decoration: none; padding: 6px 14px; font-size: 0.84rem; font-weight: 700;
+      border-radius: 6px; transition: color .2s, background .2s;
+    }
+    nav a:hover, nav a.active { color: var(--maple-orange); background: rgba(255,165,0,0.08); }
+    .header-search { display: flex; align-items: center; background: rgba(255,255,255,0.7); border: 1.5px solid rgba(255,165,0,0.4); border-radius: 24px; padding: 5px 6px 5px 16px; gap: 8px; }
+    .header-search:focus-within { border-color: var(--maple-orange); box-shadow: 0 0 0 3px rgba(255,107,0,0.15); }
+    .header-search input { width: 200px; background: transparent; border: none; outline: none; color: var(--maple-brown); font-family: 'Noto Sans KR', sans-serif; font-size: 0.87rem; font-weight: 500; }
+    .header-search input::placeholder { color: rgba(92,46,0,0.4); }
+    .header-search button { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border: none; border-radius: 18px; padding: 6px 16px; color: white; font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: opacity .15s; }
+    .header-search button:hover:not(:disabled) { opacity: 0.85; }
+
+    /* ── LOADING OVERLAY ── */
+    .loading-overlay { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,253,249,0.92); backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .loading-overlay.show { opacity: 1; pointer-events: all; }
+    .maple-spinner { width: 62px; height: 62px; margin-bottom: 24px; border: 4px solid rgba(255,165,0,0.15); border-top: 4px solid var(--maple-orange); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BOARD PAGE ── */
+    .page-board { flex: 1; padding: 48px 24px 80px; }
+    .board-inner { max-width: 1000px; margin: 0 auto; }
+    
+    .page-header { text-align: center; margin-bottom: 32px; }
+    .page-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem; background: linear-gradient(135deg, #FF6B00, #FF3300); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+    .page-desc { font-size: 1rem; color: rgba(92,46,0,0.7); font-weight: 500; }
+
+    /* ── 탭 버튼 ── */
+    .tab-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+    .tab-btn { padding: 12px 28px; border-radius: 30px; border: 1.5px solid rgba(255,165,0,0.3); background: #fff; color: rgba(92,46,0,0.6); font-family: 'Noto Sans KR', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .tab-btn.active { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border-color: var(--maple-orange); color: #fff; box-shadow: 0 6px 16px rgba(255,107,0,0.3); transform: translateY(-2px); }
+    .tab-btn:hover:not(.active) { border-color: var(--maple-orange); color: var(--maple-orange); transform: translateY(-1px); }
+
+    /* ── 리스트형 게시판 (공지, 업데이트) ── */
+    .board-list-wrap { background: #fff; border: 1px solid rgba(255,165,0,0.25); border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.04); overflow: hidden; }
+    .list-header { display: flex; padding: 16px 24px; background: rgba(255,245,230,0.5); border-bottom: 2px solid rgba(255,165,0,0.15); font-weight: 800; color: var(--maple-brown); font-size: 0.9rem; }
+    .list-header .col-title { flex: 1; text-align: center; }
+    .list-header .col-date { width: 120px; text-align: center; }
+    
+    .list-item { display: flex; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(0,0,0,0.06); text-decoration: none; color: var(--maple-brown); transition: background 0.2s; }
+    .list-item:hover { background: rgba(255,165,0,0.04); }
+    .list-item:last-child { border-bottom: none; }
+    .list-item-title { flex: 1; font-size: 0.95rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 20px; transition: color 0.2s; }
+    .list-item:hover .list-item-title { color: var(--maple-orange); }
+    .list-item-date { width: 120px; text-align: center; font-size: 0.85rem; color: rgba(92,46,0,0.5); }
+
+    .badge { font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; margin-right: 12px; flex-shrink: 0; }
+    .badge.notice { background: rgba(255,165,0,0.15); color: #E67E22; }
+    .badge.update { background: rgba(52,152,219,0.15); color: #2980B9; }
+
+    /* ── 그리드형 게시판 (이벤트, 캐시샵) ── */
+    .board-grid-wrap { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+    .grid-item { background: #fff; border: 1px solid rgba(255,165,0,0.2); border-radius: 16px; overflow: hidden; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .grid-item:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(255,165,0,0.15); border-color: rgba(255,165,0,0.4); }
+    .grid-img { width: 100%; height: 140px; object-fit: cover; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .grid-info { padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .grid-title { font-size: 0.95rem; font-weight: 700; color: var(--maple-brown); margin-bottom: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .grid-meta { display: flex; justify-content: space-between; align-items: flex-end; }
+    .grid-date { font-size: 0.75rem; color: rgba(92,46,0,0.5); }
+    .grid-dday { font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; }
+    .grid-dday.active { background: rgba(231, 76, 60, 0.1); color: #E74C3C; }
+    .grid-dday.ongoing { background: rgba(39, 174, 96, 0.1); color: #27AE60; }
+    .grid-dday.ended { background: #f0f0f0; color: #888; }
+
+    /* ── Footer ── */
+    .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; }
+    .footer-inner { width: 100%; max-width: 1100px; padding: 0 24px; }
+    .footer-main { padding: 32px 0; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+    .footer-col-title { font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; color: var(--maple-orange); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+    .footer-col-title::before { content:''; display:inline-block; width:3px; height:12px; background: var(--maple-yellow); border-radius: 2px; }
+    .footer-col p, .footer-col a { font-size: 0.78rem; color: rgba(92,46,0,0.65); font-weight: 500; line-height: 1.9; display: block; text-decoration: none; transition: color .2s; }
+    .footer-col a:hover { color: var(--maple-orange); }
+    .footer-socials { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+    .social-btn { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 1px solid rgba(255,165,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; cursor: pointer; text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: background .2s, border-color .2s, transform .15s; }
+    .social-btn:hover { background: rgba(255,165,0,0.1); border-color: var(--maple-orange); transform: translateY(-2px); }
+    .footer-bottom { border-top: 1px solid rgba(255,165,0,0.15); padding: 16px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .footer-bottom p { font-size: 0.72rem; color: rgba(92,46,0,0.5); font-weight: 500; }
+    .footer-bottom-links { display: flex; gap: 16px; }
+    .footer-bottom-links a { font-size: 0.72rem; color: rgba(92,46,0,0.6); font-weight: 700; text-decoration: none; transition: color .2s; }
+    .footer-bottom-links a:hover { color: var(--maple-orange); }
+
+    @media (max-width: 600px) { .header-inner { padding: 0 14px; } .list-header .col-date { display: none; } .list-item-date { display: none; } }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="header-row1">
+        <a href="index.html" class="logo">
+          <span class="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" style="vertical-align:middle;">
+              <g opacity="0.85"><rect x="13" y="1" width="2" height="5" rx="1" fill="#FFD700"/><rect x="13" y="22" width="2" height="5" rx="1" fill="#FFD700"/><rect x="1" y="13" width="5" height="2" rx="1" fill="#FFD700"/><rect x="22" y="13" width="5" height="2" rx="1" fill="#FFD700"/><rect x="4.5" y="4.5" width="2" height="5" rx="1" fill="#FFD700" transform="rotate(45 5.5 7)"/><rect x="20" y="4.5" width="2" height="5" rx="1" fill="#FFD700" transform="rotate(-45 21 7)"/><rect x="4.5" y="19" width="2" height="5" rx="1" fill="#FFD700" transform="rotate(-45 5.5 21)"/><rect x="20" y="19" width="2" height="5" rx="1" fill="#FFD700" transform="rotate(45 21 21)"/></g>
+              <circle cx="14" cy="14" r="7.5" fill="url(#sg)"/>
+              <ellipse cx="11.5" cy="13" rx="1.1" ry="1.3" fill="#5C2E00"/><ellipse cx="16.5" cy="13" rx="1.1" ry="1.3" fill="#5C2E00"/>
+              <ellipse cx="10" cy="15.5" rx="1.5" ry="0.9" fill="rgba(255,120,80,0.5)"/><ellipse cx="18" cy="15.5" rx="1.5" ry="0.9" fill="rgba(255,120,80,0.5)"/>
+              <path d="M11.5 16.5 Q14 18.5 16.5 16.5" stroke="#5C2E00" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+              <defs><radialGradient id="sg" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#FFF176"/><stop offset="50%" stop-color="#FFD700"/><stop offset="100%" stop-color="#FF9800"/></radialGradient></defs>
+            </svg>
+          </span>
+          <img src="1.png" alt="메이플 썬데이 로고" style="height: 24px;" />
+        </a>
+      </div>
+    </div>
+    <div class="header-line"></div>
+    <div class="header-inner">
+      <div class="header-row2">
+        <nav>
+          <a href="index.html">홈</a>
+          <a href="sunday.html">썬데이 예측</a>
+          <a href="#">시뮬레이터</a>
+          <a href="#">랜덤 추천 코디</a>
+          <a href="board.html" class="active">정보센터</a>
+        </nav>
+        <div class="header-search">
+          <input v-model="nickname" placeholder="닉네임 검색" @keyup.enter="search" />
+          <button @click="search" :disabled="!nickname.trim()">조회</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="loading-overlay" :class="{ show: loading }">
+    <div class="maple-spinner"></div>
+    <div style="font-family: 'Black Han Sans', sans-serif; font-size: 1.2rem; color: var(--maple-orange);">데이터를 불러오는 중...</div>
+  </div>
+
+  <div class="page-board" v-if="!loading">
+    <div class="board-inner">
+      
+      <div class="page-header">
+        <h1 class="page-title">정보센터</h1>
+        <p class="page-desc">메이플스토리의 최신 소식과 이벤트를 확인하세요.</p>
+      </div>
+
+      <div class="tab-row">
+        <button class="tab-btn" :class="{ active: currentTab === 'notice' }" @click="setTab('notice')">공지사항</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'update' }" @click="setTab('update')">업데이트</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'event' }" @click="setTab('event')">진행중인 이벤트</button>
+        <button class="tab-btn" :class="{ active: currentTab === 'cashshop' }" @click="setTab('cashshop')">캐시샵 소식</button>
+      </div>
+
+      <div v-if="currentTab === 'notice' || currentTab === 'update'" class="board-list-wrap">
+        <div class="list-header">
+          <div class="col-title">제목</div>
+          <div class="col-date">등록일</div>
+        </div>
+        
+        <a :href="item.url" class="list-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
+          <span class="badge" :class="currentTab">{{ currentTab === 'notice' ? '공지' : '업뎃' }}</span>
+          <div class="list-item-title">{{ item.title }}</div>
+          <div class="list-item-date">{{ formatDate(item.date) }}</div>
+        </a>
+        
+        <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888;">
+          등록된 게시글이 없습니다.
+        </div>
+      </div>
+
+      <div v-if="currentTab === 'event' || currentTab === 'cashshop'" class="board-grid-wrap">
+        <a :href="item.url" class="grid-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
+          <img :src="item.thumbnailUrl" class="grid-img" alt="">
+          <div class="grid-info">
+            <div class="grid-title">{{ item.title }}</div>
+            <div class="grid-meta">
+              <div class="grid-date">
+                {{ formatSimpleDate(item.startDate) }} ~ {{ formatSimpleDate(item.endDate) }}
+              </div>
+              
+              <div v-if="item.ongoing" class="grid-dday ongoing">상시 판매</div>
+              <div v-else :class="['grid-dday', getDdayStatus(item.endDate)]">
+                {{ calculateDday(item.endDate) }}
+              </div>
+            </div>
+          </div>
+        </a>
+        
+        <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888; grid-column: 1 / -1;">
+          진행중인 항목이 없습니다.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-main">
+        <div class="footer-col"><div class="footer-col-title">서비스 소개</div><p>메이플 썬데이는 메이플스토리 캐릭터 정보를 조회하는 서비스입니다.</p></div>
+        <div class="footer-col"><div class="footer-col-title">메뉴</div><a href="index.html">홈</a><a href="sunday.html">썬데이 예측</a><a href="board.html">정보센터</a></div>
+        <div class="footer-col"><div class="footer-col-title">문의 & 지원</div><a href="#">이메일 문의</a><a href="#">디스코드</a></div>
+      </div>
+      <div class="footer-bottom"><p>© 2026 메이플 썬데이.</p></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+const { createApp, ref, onMounted, computed } = Vue;
+
+createApp({
+  setup() {
+    const nickname = ref('');
+    const loading = ref(true);
+    
+    // URL에서 ?tab= 값 읽어오기 (기본값: notice)
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('tab') || 'notice';
+    const currentTab = ref(initialTab);
+
+    // 데이터 저장소
+    const lists = ref({
+      notice: [],
+      update: [],
+      event: [],
+      cashshop: []
+    });
+
+    onMounted(async () => {
+      try {
+        const res = await fetch('https://openapi-web-project.onrender.com/api/notices');
+        if (!res.ok) throw new Error('API 호출 실패');
+        const data = await res.json();
+        
+        lists.value.notice = data.notice || [];
+        lists.value.update = data.update || [];
+        lists.value.event = data.event || [];
+        lists.value.cashshop = data.cashshop || [];
+      } catch (e) {
+        console.error('게시판 로드 실패:', e);
+      } finally {
+        loading.value = false;
+      }
+    });
+
+    // 현재 선택된 탭의 리스트 반환
+    const currentList = computed(() => {
+      return lists.value[currentTab.value] || [];
+    });
+
+    function setTab(tab) {
+      currentTab.value = tab;
+      // URL 변경 (새로고침 없이 파라미터만 변경하여 뒤로가기 지원)
+      window.history.pushState({}, '', `?tab=${tab}`);
+    }
+
+    function search() {
+      const name = nickname.value.trim();
+      if (name) window.location.href = `result.html?name=${encodeURIComponent(name)}`;
+    }
+
+    // 날짜 포맷 (예: 2026.04.09)
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+    }
+
+    // 짧은 날짜 포맷 (예: 26.04.09)
+    function formatSimpleDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      return `${String(date.getFullYear()).slice(-2)}.${String(date.getMonth() + 1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+    }
+
+    // D-Day 계산 및 상태 반환
+    function calculateDday(endDateString) {
+      if (!endDateString) return '';
+      const end = new Date(endDateString);
+      const now = new Date();
+      const diffMs = end - now;
+      
+      if (diffMs < 0) return '종료됨';
+      
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      return diffDays === 0 ? 'D-Day' : `D-${diffDays}`;
+    }
+
+    // D-Day CSS 클래스 지정용
+    function getDdayStatus(endDateString) {
+      if (!endDateString) return '';
+      const end = new Date(endDateString);
+      if ((end - new Date()) < 0) return 'ended';
+      return 'active';
+    }
+
+    return { 
+      nickname, loading, currentTab, currentList, 
+      setTab, search, formatDate, formatSimpleDate, 
+      calculateDday, getDdayStatus
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
