@@ -459,7 +459,7 @@
 
         <div class="tab-row">
           <button class="tab-btn" :class="{ active: tab==='stats' }" @click="tab='stats'">스탯/장비</button>
-          <button class="tab-btn" :class="{ active: tab==='equip' }" @click="tab='equip'">장비 상세</button>
+          <button class="tab-btn" :class="{ active: tab==='equip' }" @click="tab='equip'">스킬</button>
           <button class="tab-btn" :class="{ active: tab==='union' }" @click="tab='union'">유니온</button>
         </div>
 
@@ -579,37 +579,7 @@
 
         <div v-if="tab==='equip'">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div class="section-title" style="margin-bottom: 0;">착용 장비 상세</div>
-            <div class="preset-btns">
-              <button class="preset-btn" :class="{ active: activeEquipPreset === '1' }" @click="activeEquipPreset = '1'">1</button>
-              <button class="preset-btn" :class="{ active: activeEquipPreset === '2' }" @click="activeEquipPreset = '2'">2</button>
-              <button class="preset-btn" :class="{ active: activeEquipPreset === '3' }" @click="activeEquipPreset = '3'">3</button>
-            </div>
-          </div>
-          <div class="equip-grid">
-            <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot" @click="openTooltip(eq)">
-              <div class="equip-slot">{{ eq.slot }}</div>
-              <img v-if="eq.itemIcon" :src="eq.itemIcon" :alt="eq.name" style="width: 32px; height: 32px; margin: 4px 0;" />
-              <div class="equip-name" :class="eq.grade">{{ eq.name }}</div>
-              <div class="equip-stars" v-if="eq.stars > 0">
-                <span v-for="i in 30" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
-              </div>
-              <div class="equip-options-wrap" v-if="eq.potential || eq.additionalPotential">
-                <div v-if="eq.potential" class="equip-potential-box">
-                  <div class="equip-potential-title">잠재능력</div>
-                  <div class="equip-potential">
-                    <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
-                  </div>
-                </div>
-  
-                <div v-if="eq.additionalPotential" class="equip-potential-box">
-                  <div class="equip-add-potential-title">에디셔널</div>
-                  <div class="equip-potential">
-                    <span v-for="p in eq.additionalPotential" :key="p">• {{ p }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <div class="section-title" style="margin-bottom: 0;">스킬</div>
           </div>
         </div>
 
