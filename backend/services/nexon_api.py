@@ -114,6 +114,30 @@ async def fetch_union(client: httpx.AsyncClient, ocid: str, date: str) -> dict:
     )
 
 
+async def fetch_union_raider(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client, "user/union-raider", ocid, date, "유니온 공격대 정보 조회 실패"
+    )
+
+
+async def fetch_union_artifact(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client, "user/union-artifact", ocid, date, "유니온 아티팩트 정보 조회 실패"
+    )
+
+
+async def fetch_union_champion(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client, "user/union-champion", ocid, date, "유니온 챔피언 정보 조회 실패"
+    )
+
+
 async def fetch_overall_ranking(
     client: httpx.AsyncClient, ocid: str, date: str
 ) -> dict:

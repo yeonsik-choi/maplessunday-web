@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 EquipGrade = Literal["rare", "epic", "unique", "legendary"]
 
@@ -96,6 +98,88 @@ class EquipUi(BaseModel):
     soul_option: str | None = Field(default=None, serialization_alias="soulOption")
 
 
+class UnionPresetUi(BaseModel):
+    model_config = _MODEL
+
+    blocks: list[dict[str, Any]] = Field(default_factory=list)
+    raiderStats: list[str] = Field(default_factory=list)
+    occupiedStats: list[str] = Field(default_factory=list)
+    innerStats: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class UnionHeader(BaseModel):
+    model_config = _MODEL
+
+    grade: str | None = None
+    level: int | None = None
+    artifactLevel: int | None = None
+
+
+class UnionChampionSlotRow(BaseModel):
+    model_config = _MODEL
+
+    championName: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("champion_name", "championName"),
+    )
+    championSlot: int | None = Field(
+        default=None,
+        validation_alias=AliasChoices("champion_slot", "championSlot"),
+    )
+    championGrade: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("champion_grade", "championGrade"),
+    )
+    championClass: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("champion_class", "championClass"),
+    )
+    badgeEffects: list[str] = Field(default_factory=list)
+
+
+class UnionChampionSection(BaseModel):
+    model_config = _MODEL
+
+    slots: list[UnionChampionSlotRow] = Field(default_factory=list)
+    totalBadgeEffects: list[str] = Field(default_factory=list)
+
+
+class UnionArtifactEffectRow(BaseModel):
+    model_config = _MODEL
+
+    name: str
+    level: int
+
+
+class UnionArtifactCrystalRow(BaseModel):
+    model_config = _MODEL
+
+    name: str
+    level: int | None = None
+    validityFlag: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("validity_flag", "validityFlag"),
+    )
+    options: list[str] = Field(default_factory=list)
+
+
+class UnionArtifactSection(BaseModel):
+    model_config = _MODEL
+
+    effects: list[UnionArtifactEffectRow] = Field(default_factory=list)
+    crystals: list[UnionArtifactCrystalRow] = Field(default_factory=list)
+
+
+class UnionResponse(BaseModel):
+    model_config = _MODEL
+
+    header: UnionHeader = Field(default_factory=UnionHeader)
+    champion: UnionChampionSection = Field(default_factory=UnionChampionSection)
+    artifact: UnionArtifactSection = Field(default_factory=UnionArtifactSection)
+    activePreset: int | None = None
+    presets: dict[str, UnionPresetUi] = Field(default_factory=dict)
+
+
 class CharacterResponse(BaseModel):
     model_config = _MODEL
 
@@ -123,3 +207,5 @@ class CharacterResponse(BaseModel):
     equipsPreset1: list[EquipUi] = Field(default_factory=list)
     equipsPreset2: list[EquipUi] = Field(default_factory=list)
     equipsPreset3: list[EquipUi] = Field(default_factory=list)
+
+    union: UnionResponse | None = None

@@ -14,6 +14,14 @@ from schemas.character_all import (
     EquipTotalOptionUi,
     EquipUi,
     SetEffectUi,
+    UnionArtifactCrystalRow,
+    UnionArtifactEffectRow,
+    UnionArtifactSection,
+    UnionChampionSection,
+    UnionChampionSlotRow,
+    UnionHeader,
+    UnionPresetUi,
+    UnionResponse,
 )
 from services.nexon_api import (
     fetch_character_ability,
@@ -24,6 +32,9 @@ from services.nexon_api import (
     fetch_overall_ranking,
     fetch_set_effect,
     fetch_union,
+    fetch_union_artifact,
+    fetch_union_champion,
+    fetch_union_raider,
     get_ocid,
     get_yesterday,
 )
@@ -41,6 +52,9 @@ _NEXON_FETCH_NAMES = (
     "item_equipment",
     "popularity",
     "union",
+    "union_raider",
+    "union_artifact",
+    "union_champion",
     "ranking",
     "set_effect",
 )
@@ -252,6 +266,124 @@ def _rank_int(payload: dict) -> int | None:
 def _require_key():
     if not NEXON_API_KEY:
         raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
+
+
+def _build_preset(preset_data: dict | None) -> UnionPresetUi:
+    if not preset_data:
+        return UnionPresetUi()
+    blocks = _nget(preset_data, "union_block", "unionBlock")
+    if not isinstance(blocks, list):
+        blocks = []
+    blocks_out: list[dict[str, Any]] = [dict(b) for b in blocks if isinstance(b, dict)]
+    rs = _nget(preset_data, "union_raider_stat", "unionRaiderStat")
+    raider_stats = [str(x) for x in rs] if isinstance(rs, list) else []
+    occ = _nget(preset_data, "union_occupied_stat", "unionOccupiedStat")
+    occupied = [str(x) for x in occ] if isinstance(occ, list) else []
+    inner_raw = _nget(preset_data, "union_inner_stat", "unionInnerStat")
+    inner_out: list[dict[str, Any]] = []
+    if isinstance(inner_raw, list):
+        for r in inner_raw:
+            if isinstance(r, dict):
+                inner_out.append(dict(r))
+    return UnionPresetUi(
+        blocks=blocks_out,
+        raiderStats=raider_stats,
+        occupiedStats=occupied,
+        innerStats=inner_out,
+    )
+
+
+def _build_union_artifact_section(artifact: dict) -> UnionArtifactSection:
+    effects: list[UnionArtifactEffectRow] = []
+    raw_eff = _nget(artifact, "union_artifact_effect", "unionArtifactEffect")
+    if isinstance(raw_eff, list):
+        for e in raw_eff:
+            if not isinstance(e, dict):
+                continue
+            name = _nexon_str(e, "name") or ""
+            lev = _parse_int(e.get("level"))
+            effects.append(
+                UnionArtifactEffectRow(name=name, level=lev if lev is not None else 0)
+            )
+    crystals: list[UnionArtifactCrystalRow] = []
+    raw_cry = _nget(artifact, "union_artifact_crystal", "unionArtifactCrystal")
+    if isinstance(raw_cry, list):
+        for c in raw_cry:
+            if not isinstance(c, dict):
+                continue
+            n1 = _nexon_str(c, "crystal_option_name_1", "crystalOptionName1")
+            n2 = _nexon_str(c, "crystal_option_name_2", "crystalOptionName2")
+            n3 = _nexon_str(c, "crystal_option_name_3", "crystalOptionName3")
+            opts = [t for t in (n1, n2, n3) if t]
+            crystals.append(
+                UnionArtifactCrystalRow(
+                    name=_nexon_str(c, "name") or "",
+                    level=_parse_int(c.get("level")),
+                    validityFlag=_nexon_str(c, "validity_flag", "validityFlag"),
+                    options=opts,
+                )
+            )
+    return UnionArtifactSection(effects=effects, crystals=crystals)
+
+
+def _build_union_champion_section(champion: dict) -> UnionChampionSection:
+    slots: list[UnionChampionSlotRow] = []
+    raw_slots = _nget(champion, "union_champion", "unionChampion")
+    if isinstance(raw_slots, list):
+        for row in raw_slots:
+            if not isinstance(row, dict):
+                continue
+            badges_raw = _nget(row, "champion_badge_info", "championBadgeInfo")
+            badge_effects: list[str] = []
+            if isinstance(badges_raw, list):
+                for b in badges_raw:
+                    if isinstance(b, dict) and b.get("stat") is not None:
+                        badge_effects.append(str(b["stat"]))
+            slot_n = _parse_int(_nget(row, "champion_slot", "championSlot"))
+            slots.append(
+                UnionChampionSlotRow(
+                    championName=_nexon_str(row, "champion_name", "championName"),
+                    championSlot=slot_n,
+                    championGrade=_nexon_str(row, "champion_grade", "championGrade"),
+                    championClass=_nexon_str(row, "champion_class", "championClass"),
+                    badgeEffects=badge_effects,
+                )
+            )
+    total_effects: list[str] = []
+    raw_total = _nget(champion, "champion_badge_total_info", "championBadgeTotalInfo")
+    if isinstance(raw_total, list):
+        for b in raw_total:
+            if isinstance(b, dict) and b.get("stat") is not None:
+                total_effects.append(str(b["stat"]))
+    return UnionChampionSection(slots=slots, totalBadgeEffects=total_effects)
+
+
+def _assemble_union_response(
+    union_basic: dict,
+    raider: dict,
+    artifact: dict,
+    champion: dict,
+) -> UnionResponse:
+    header = UnionHeader(
+        grade=_nexon_str(union_basic, "union_grade", "unionGrade"),
+        level=_parse_int(_nget(union_basic, "union_level", "unionLevel")),
+        artifactLevel=_parse_int(
+            _nget(union_basic, "union_artifact_level", "unionArtifactLevel")
+        ),
+    )
+    active = _parse_int(_nget(raider, "use_preset_no", "usePresetNo"))
+    presets: dict[str, UnionPresetUi] = {}
+    for i in range(1, 6):
+        pdata = _nget(raider, f"union_raider_preset_{i}", f"unionRaiderPreset{i}")
+        presets[str(i)] = _build_preset(pdata if isinstance(pdata, dict) else None)
+
+    return UnionResponse(
+        header=header,
+        champion=_build_union_champion_section(champion),
+        artifact=_build_union_artifact_section(artifact),
+        activePreset=active,
+        presets=presets,
+    )
 
 
 def _coerce_level(raw) -> int | None:
@@ -565,6 +697,9 @@ async def get_character_info(nickname: str):
                 fetch_item_equipment(client, ocid, yesterday),
                 fetch_character_popularity(client, ocid, yesterday),
                 fetch_union(client, ocid, yesterday),
+                fetch_union_raider(client, ocid, yesterday),
+                fetch_union_artifact(client, ocid, yesterday),
+                fetch_union_champion(client, ocid, yesterday),
                 fetch_overall_ranking(client, ocid, yesterday),
                 fetch_set_effect(client, ocid, yesterday),
                 return_exceptions=True,
@@ -602,8 +737,11 @@ async def get_character_info(nickname: str):
     equip_data = pick(3)
     pop_data = pick(4)
     union_data = pick(5)
-    rank_data = pick(6)
-    set_effect_data = pick(7)
+    raider_data = pick(6)
+    artifact_data = pick(7)
+    champion_data = pick(8)
+    rank_data = pick(9)
+    set_effect_data = pick(10)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
     preset_equip_lists = [
@@ -641,6 +779,10 @@ async def get_character_info(nickname: str):
     union_n = _nget(union_data, "union_level", "unionLevel")
     union_level_str = _fmt_thousands(union_n) if union_n is not None else None
 
+    union_detail = _assemble_union_response(
+        union_data, raider_data, artifact_data, champion_data
+    )
+
     ep0, ep1, ep2 = equipment_presets[0], equipment_presets[1], equipment_presets[2]
 
     return CharacterResponse(
@@ -665,4 +807,5 @@ async def get_character_info(nickname: str):
         equipsPreset1=ep0,
         equipsPreset2=ep1,
         equipsPreset3=ep2,
+        union=union_detail,
     )
