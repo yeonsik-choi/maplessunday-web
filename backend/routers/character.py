@@ -693,18 +693,35 @@ async def get_character_info(nickname: str):
                 return_exceptions=True,
             )
             await asyncio.sleep(_NEXON_SLEEP_SEC)
-            batch2 = await asyncio.gather(
+            # 유니온 상세(레이더·아티팩트·챔피언)는 8건 동시 호출 시 429가 나기 쉬워
+            # 5건 + 간격 + 3건으로 나눔. pick(3)~(10) 순서는 기존과 동일하게 유지.
+            batch2a = await asyncio.gather(
                 fetch_item_equipment(client, ocid, yesterday),
                 fetch_character_popularity(client, ocid, yesterday),
                 fetch_union(client, ocid, yesterday),
-                fetch_union_raider(client, ocid, yesterday),
-                fetch_union_artifact(client, ocid, yesterday),
-                fetch_union_champion(client, ocid, yesterday),
                 fetch_overall_ranking(client, ocid, yesterday),
                 fetch_set_effect(client, ocid, yesterday),
                 return_exceptions=True,
             )
-            results = list(batch1) + list(batch2)
+            await asyncio.sleep(_NEXON_SLEEP_SEC)
+            batch2b = await asyncio.gather(
+                fetch_union_raider(client, ocid, yesterday),
+                fetch_union_artifact(client, ocid, yesterday),
+                fetch_union_champion(client, ocid, yesterday),
+                return_exceptions=True,
+            )
+            a0, a1, a2, a3, a4 = batch2a
+            b0, b1, b2 = batch2b
+            results = list(batch1) + [
+                a0,
+                a1,
+                a2,
+                b0,
+                b1,
+                b2,
+                a3,
+                a4,
+            ]
     except HTTPException:
         raise
     except httpx.RequestError as e:
@@ -725,7 +742,15 @@ async def get_character_info(nickname: str):
                 if i < len(_NEXON_FETCH_NAMES)
                 else str(i)
             )
-            logger.warning("nexon fetch failed %s: %s", name, r)
+            if isinstance(r, HTTPException):
+                logger.warning(
+                    "nexon fetch failed %s: HTTP %s %s",
+                    name,
+                    r.status_code,
+                    r.detail,
+                )
+            else:
+                logger.warning("nexon fetch failed %s: %s", name, r)
 
     def pick(i: int) -> dict:
         r = results[i]
