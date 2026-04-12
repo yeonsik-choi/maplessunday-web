@@ -138,6 +138,17 @@ def _shorten_inner_stat_effect(text: str) -> str:
     return s
 
 
+_CRYSTAL_NAME_PREFIX = re.compile(r"^크리스탈\s*:\s*")
+
+
+def _crystal_display_name(raw: str | None) -> str:
+    if not raw:
+        return ""
+    s = str(raw).strip()
+    t = _CRYSTAL_NAME_PREFIX.sub("", s).strip()
+    return t if t else s
+
+
 def _nget(d: dict | None, *keys: str) -> Any:
     if not d:
         return None
@@ -353,7 +364,7 @@ def _build_union_artifact_section(artifact: dict) -> UnionArtifactSection:
             ]
             crystals.append(
                 UnionArtifactCrystalRow(
-                    name=_nexon_str(c, "name") or "",
+                    name=_crystal_display_name(_nexon_str(c, "name")),
                     level=_parse_int(c.get("level")),
                     validityFlag=_nexon_str(c, "validity_flag", "validityFlag"),
                     date_expire=_nexon_str(c, "date_expire", "dateExpire"),
