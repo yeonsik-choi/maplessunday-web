@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 EquipGrade = Literal["rare", "epic", "unique", "legendary"]
 
@@ -56,10 +54,7 @@ class EquipUi(BaseModel):
     slot: str | None = None
     name: str | None = None
     stars: int = 0
-    grade: EquipGrade | None = Field(
-        default=None,
-        description="메인 잠재 등급 → rare|epic|unique|legendary, 없으면 null",
-    )
+    grade: EquipGrade | None = None
     potential: list[str] | None = None
 
     item_icon: str | None = Field(default=None, serialization_alias="itemIcon")
@@ -118,22 +113,10 @@ class UnionHeader(BaseModel):
 class UnionChampionSlotRow(BaseModel):
     model_config = _MODEL
 
-    championName: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("champion_name", "championName"),
-    )
-    championSlot: int | None = Field(
-        default=None,
-        validation_alias=AliasChoices("champion_slot", "championSlot"),
-    )
-    championGrade: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("champion_grade", "championGrade"),
-    )
-    championClass: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("champion_class", "championClass"),
-    )
+    championName: str | None = None
+    championSlot: int | None = None
+    championGrade: str | None = None
+    championClass: str | None = None
     badgeEffects: list[str] = Field(default_factory=list)
 
 
@@ -156,14 +139,8 @@ class UnionArtifactCrystalRow(BaseModel):
 
     name: str
     level: int | None = None
-    validityFlag: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("validity_flag", "validityFlag"),
-    )
-    date_expire: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("date_expire", "dateExpire"),
-    )
+    validityFlag: str | None = None
+    date_expire: str | None = None
     options: list[str] = Field(default_factory=list)
 
 
