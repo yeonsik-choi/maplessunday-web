@@ -115,6 +115,27 @@ _UNION_CRYSTAL_OPTION_KEYS = (
     ("crystal_option_name_2", "crystalOptionName2"),
     ("crystal_option_name_3", "crystalOptionName3"),
 )
+_INNER_STAT_SHORT = {
+    "유니온 최대 HP": "HP",
+    "유니온 DEX": "DEX",
+    "유니온 STR": "STR",
+    "유니온 INT": "INT",
+    "유니온 LUK": "LUK",
+    "유니온 최대 MP": "MP",
+    "유니온 마력": "마력",
+    "유니온 공격력": "공격력",
+}
+
+
+def _shorten_inner_stat_effect(text: str) -> str:
+    if not text:
+        return text
+    s = text
+    for long_k, short_v in sorted(
+        _INNER_STAT_SHORT.items(), key=lambda kv: -len(kv[0])
+    ):
+        s = s.replace(long_k, short_v)
+    return s
 
 
 def _nget(d: dict | None, *keys: str) -> Any:
@@ -284,21 +305,26 @@ def _build_preset(preset_data: dict | None) -> UnionPresetUi:
         key=lambda b: _parse_int(_nget(b, "block_level", "blockLevel")) or 0,
         reverse=True,
     )
+    inner_raw = _nget(preset_data, "union_inner_stat", "unionInnerStat")
+    inner_out: list[dict[str, Any]] = []
+    if isinstance(inner_raw, list):
+        for r in inner_raw:
+            if not isinstance(r, dict):
+                continue
+            d = dict(r)
+            for ek in ("stat_field_effect", "statFieldEffect"):
+                if ek in d and isinstance(d[ek], str):
+                    d[ek] = _shorten_inner_stat_effect(d[ek])
+            inner_out.append(d)
     rs = _nget(preset_data, "union_raider_stat", "unionRaiderStat")
     raider_stats = [str(x) for x in rs] if isinstance(rs, list) else []
     occ = _nget(preset_data, "union_occupied_stat", "unionOccupiedStat")
     occupied = [str(x) for x in occ] if isinstance(occ, list) else []
-    inner_raw = _nget(preset_data, "union_inner_stat", "unionInnerStat")
-    inner_out: list[dict[str, Any]] = (
-        [dict(r) for r in inner_raw if isinstance(r, dict)]
-        if isinstance(inner_raw, list)
-        else []
-    )
     return UnionPresetUi(
         blocks=blocks_out,
+        innerStats=inner_out,
         raiderStats=raider_stats,
         occupiedStats=occupied,
-        innerStats=inner_out,
     )
 
 

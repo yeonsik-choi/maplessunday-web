@@ -97,9 +97,9 @@ class UnionPresetUi(BaseModel):
     model_config = _MODEL
 
     blocks: list[dict[str, Any]] = Field(default_factory=list)
+    innerStats: list[dict[str, Any]] = Field(default_factory=list)
     raiderStats: list[str] = Field(default_factory=list)
     occupiedStats: list[str] = Field(default_factory=list)
-    innerStats: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class UnionHeader(BaseModel):
