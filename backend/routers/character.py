@@ -320,6 +320,7 @@ def _build_union_artifact_section(artifact: dict) -> UnionArtifactSection:
                     name=_nexon_str(c, "name") or "",
                     level=_parse_int(c.get("level")),
                     validityFlag=_nexon_str(c, "validity_flag", "validityFlag"),
+                    date_expire=_nexon_str(c, "date_expire", "dateExpire"),
                     options=opts,
                 )
             )

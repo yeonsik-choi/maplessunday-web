@@ -160,6 +160,10 @@ class UnionArtifactCrystalRow(BaseModel):
         default=None,
         validation_alias=AliasChoices("validity_flag", "validityFlag"),
     )
+    date_expire: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("date_expire", "dateExpire"),
+    )
     options: list[str] = Field(default_factory=list)
 
 
