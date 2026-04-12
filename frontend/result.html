@@ -131,72 +131,37 @@
      box-shadow: 0 4px 10px rgba(0,0,0,0.03); 
      position: relative; 
      overflow: hidden; 
+     cursor: pointer;
     }
     .equip-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,165,0,0.15); }
     .equip-card.star-force::after { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 50% -20%, rgba(255,215,0,0.08) 0%, transparent 60%); pointer-events:none; }
 
     /* ── 왼쪽 장비 아이콘 영역 ── */
-    .equip-icon-wrap {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      width: 56px;
-      margin-top: 2px;
-    }
-    .equip-slot {
-      font-size: 0.65rem;
-      font-weight: 800;
-      color: rgba(92,46,0,0.6);
-      background: rgba(255, 165, 0, 0.1);
-      padding: 3px 6px;
-      border-radius: 6px;
-      text-align: center;
-      width: 100%;
-      word-break: keep-all;
-    }
-    .equip-icon-img {
-      width: 44px;
-      height: 44px;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-    }
+    .equip-icon-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 56px; margin-top: 2px; }
+    .equip-slot { font-size: 0.65rem; font-weight: 800; color: rgba(92,46,0,0.6); background: rgba(255, 165, 0, 0.1); padding: 3px 6px; border-radius: 6px; text-align: center; width: 100%; word-break: keep-all; }
+    .equip-icon-img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
 
     /* ── 오른쪽 텍스트 정보 영역 ── */
     .equip-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .equip-header { margin-bottom: 8px; }
 
     /* 스타포스 15칸 2줄 & 5칸마다 띄어쓰기 배치 */
-    .equip-stars { 
-      display: grid; 
-      grid-template-columns: repeat(15, max-content); 
-      row-gap: 2px; 
-      column-gap: 1px; 
-      margin-bottom: 6px; 
-    }
+    .equip-stars { display: grid; grid-template-columns: repeat(15, max-content); row-gap: 2px; column-gap: 1px; margin-bottom: 6px; }
     .equip-stars span { line-height: 1; }
     .equip-stars span:nth-child(5n):not(:nth-child(15n)) { margin-right: 7px; }
 
     .star-on { color: #FF9D00; font-size: 0.65rem; filter: drop-shadow(0 1px 2px rgba(255,165,0,0.4)); } 
     .star-off { color: rgba(0,0,0,0.1); font-size: 0.65rem; }
-
     .equip-name { font-size: 0.9rem; font-weight: 800; line-height: 1.3; color: var(--maple-brown); }
 
-    /* 등급 공통 색상 클래스로 분리 */
+    /* 등급 공통 색상 클래스 */
     .rare { color: #2980B9 !important; } 
     .epic { color: #8E44AD !important; } 
     .unique { color: #D4AC0D !important; } 
     .legendary { color: #27AE60 !important; }
 
     /* ── 잠재능력 / 에디셔널 2단 분할 ── */
-    .equip-options-wrap { 
-      display: flex; 
-      gap: 16px; 
-      margin-top: 6px; 
-      padding-top: 10px; 
-      border-top: 1px dashed rgba(255,165,0,0.3); 
-    }
+    .equip-options-wrap { display: flex; gap: 16px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed rgba(255,165,0,0.3); }
     .equip-potential-box { flex: 1; }
     .equip-potential-title { font-size: 0.68rem; font-weight: 800; margin-bottom: 4px; }
     .equip-add-potential-title { font-size: 0.68rem; font-weight: 800; margin-bottom: 4px; }
@@ -224,62 +189,37 @@
     .info-val { font-weight: 800; color: var(--maple-brown); }
     .info-val.highlight { color: var(--maple-orange); }
 
-    /* ── 장비 상세 툴팁 (모달) ── */
-    .tooltip-overlay {
-      position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
-    }
-    .tooltip-box {
-      background: rgba(17, 17, 17, 0.95);
-      border: 1.5px solid rgba(255,255,255,0.8);
-      border-radius: 8px;
-      width: 100%; max-width: 320px;
-      color: #fff; font-family: 'Noto Sans KR', sans-serif;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      position: relative;
-      overflow: hidden;
-    }
-    .tooltip-close {
-      position: absolute; top: 10px; right: 12px;
-      background: none; border: none; color: #fff;
-      font-size: 1.2rem; cursor: pointer; opacity: 0.6;
-    }
-    .tooltip-close:hover { opacity: 1; }
+    /* ── 세트 효과 ── */
+    .set-effect-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .set-effect-item { background: #fff; border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 8px; overflow: hidden; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+    .set-effect-item:hover { border-color: rgba(255,165,0,0.3); box-shadow: 0 2px 8px rgba(255,165,0,0.08); }
+    .set-effect-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; cursor: pointer; }
+    .set-effect-name { font-size: 0.85rem; font-weight: 700; color: var(--maple-brown); }
+    .set-effect-count { background: #F0F4FF; color: #2563EB; font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 6px; }
+    .set-effect-details { padding: 0 14px 12px; background: #FAFAFA; border-top: 1px dashed rgba(0,0,0,0.06); }
+    .set-effect-details ul { list-style: none; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .set-effect-details li { font-size: 0.75rem; color: rgba(92,46,0,0.75); line-height: 1.5; display: flex; gap: 6px; word-break: keep-all; }
+    .set-effect-details li::before { content: '•'; color: var(--maple-orange); font-weight: bold; }
 
-    .tooltip-stars { 
-      display: grid; 
-      grid-template-columns: repeat(15, max-content); 
-      justify-content: center;
-      row-gap: 2px; 
-      column-gap: 1px; 
-      padding: 10px 0 5px; 
-      color: #FFD700; 
-      font-size: 0.8rem; 
-      letter-spacing: 1px; 
-    }
+    /* ── 장비 상세 툴팁 (모달) ── */
+    .tooltip-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .tooltip-box { background: rgba(17, 17, 17, 0.95); border: 1.5px solid rgba(255,255,255,0.8); border-radius: 8px; width: 100%; max-width: 320px; color: #fff; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
+    .tooltip-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; opacity: 0.6; }
+    .tooltip-close:hover { opacity: 1; }
+    .tooltip-stars { display: grid; grid-template-columns: repeat(15, max-content); justify-content: center; row-gap: 2px; column-gap: 1px; padding: 10px 0 5px; color: #FFD700; font-size: 0.8rem; letter-spacing: 1px; }
     .tooltip-stars span { line-height: 1; }
     .tooltip-stars span:nth-child(5n):not(:nth-child(15n)) { margin-right: 6px; }
-
     .tooltip-title-area { text-align: center; padding: 0 15px 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); }
     .tooltip-soul-name { color: #ccff00; font-size: 0.8rem; font-weight: 700; margin-bottom: 2px; }
     .tooltip-item-name { font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
     .tooltip-grade-text { font-size: 0.75rem; margin-top: 2px; }
-
     .tooltip-icon-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); display: flex; align-items: flex-start; gap: 12px; }
     .tooltip-icon-wrap { width: 64px; height: 64px; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; flex-shrink: 0; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
     .tooltip-icon-wrap img { width: 50px; height: 50px; object-fit: contain; }
     .tooltip-req { flex: 1; font-size: 0.75rem; color: #FFCC00; }
-
     .tooltip-stats-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); font-size: 0.8rem; line-height: 1.6; font-weight: 500; }
     .stat-line { display: flex; flex-wrap: wrap; }
-    .c-cyan { color: #66ffff; font-weight: 700; } /* 종합 스탯 */
-    .c-white { color: #ffffff; } /* 기본 스탯 */
-    .c-green { color: #ccff00; } /* 추옵 */
-    .c-blue { color: #aaaaff; } /* 작 */
-    .c-gold { color: #ffcc00; } /* 스타포스 */
-
+    .c-cyan { color: #66ffff; font-weight: 700; } .c-white { color: #ffffff; } .c-green { color: #ccff00; } .c-blue { color: #aaaaff; } .c-gold { color: #ffcc00; }
     .tooltip-pot-area { padding: 15px; border-bottom: 1px dashed rgba(255,255,255,0.3); font-size: 0.8rem; }
     .pot-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 6px; }
     .pot-icon { display: inline-block; width: 14px; height: 14px; line-height: 14px; text-align: center; border-radius: 3px; font-size: 0.65rem; font-weight: 900; }
@@ -288,60 +228,52 @@
     .pot-icon.E { background: #8E44AD; color: #fff; border: 1px solid #732D91; }
     .pot-icon.R { background: #2980B9; color: #fff; border: 1px solid #1F618D; }
     .pot-line { color: #fff; margin-bottom: 2px; }
-    /* 툴팁 잠재능력 구분선 */
-    .pot-divider {
-      border-top: 1px dashed rgba(255, 255, 255, 0.3);
-      margin: 10px 0;
-    }
-
+    .pot-divider { border-top: 1px dashed rgba(255, 255, 255, 0.3); margin: 10px 0; }
     .tooltip-soul-area { padding: 15px; font-size: 0.8rem; }
 
-    /* 기존 장비 카드 마우스 오버 효과 추가 */
-    .equip-card { cursor: pointer; }
-    .equip-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,165,0,0.2); }
-    
-    /* ── 세트 효과 ── */
-    .set-effect-list { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-    .set-effect-item {
-      background: #fff;
-      border: 1px solid rgba(0, 0, 0, 0.08);
-      border-radius: 8px;
-      overflow: hidden;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    /* ── 유니온 탭 스타일 ── */
+    .union-wrapper { display: flex; flex-direction: column; gap: 24px; }
+    .union-card { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,250,240,0.9)); border: 1px solid rgba(255,165,0,0.25); border-radius: 14px; padding: 24px; box-shadow: 0 4px 12px rgba(255,165,0,0.05); }
+    .union-card-title { font-family: 'Black Han Sans', sans-serif; font-size: 1.2rem; color: var(--maple-orange); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,165,0,0.15); padding-bottom: 12px; }
+    .union-preset-group { display: flex; gap: 6px; }
+    .union-preset-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,165,0,0.3); background: #fff; font-size: 0.8rem; font-weight: 700; color: rgba(92,46,0,0.6); cursor: pointer; transition: all 0.2s; }
+    .union-preset-btn.active { background: var(--maple-orange); color: #fff; border-color: var(--maple-orange); box-shadow: 0 3px 8px rgba(255,107,0,0.25); }
+    .union-raider-content { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+    @media (max-width: 800px) { .union-raider-content { grid-template-columns: 1fr; } }
+    /* 좌측 영역의 스크롤과 높이 제한을 없애고 전체 목록을 펼침 */
+    .union-block-list { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+      gap: 10px; 
+      align-content: start; 
     }
-    .set-effect-item:hover { 
-      border-color: rgba(255,165,0,0.3); 
-      box-shadow: 0 2px 8px rgba(255,165,0,0.08); 
-    }
-    .set-effect-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 14px; cursor: pointer;
-    }
-    .set-effect-name { font-size: 0.85rem; font-weight: 700; color: var(--maple-brown); }
-    .set-effect-count {
-      background: #F0F4FF; /* 연한 파란색 배경 */
-      color: #2563EB;      /* 짙은 파란색 텍스트 */
-      font-size: 0.75rem; font-weight: 800;
-      padding: 4px 8px; border-radius: 6px;
-    }
-    .set-effect-details {
-      padding: 0 14px 12px;
-      background: #FAFAFA;
-      border-top: 1px dashed rgba(0,0,0,0.06);
-    }
-    .set-effect-details ul { 
-      list-style: none; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; 
-    }
-    .set-effect-details li { 
-      font-size: 0.75rem; color: rgba(92,46,0,0.75); line-height: 1.5; 
-      display: flex; gap: 6px; word-break: keep-all; 
-    }
-    .set-effect-details li::before { 
-      content: '•'; color: var(--maple-orange); font-weight: bold; 
-    }
+    .union-block-item { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; transition: transform 0.15s; }
+    .union-block-item:hover { transform: translateY(-2px); border-color: rgba(255,165,0,0.3); }
+    .union-block-job { font-size: 0.85rem; font-weight: 800; color: var(--maple-brown); }
+    .union-block-level { font-size: 0.75rem; color: rgba(92,46,0,0.6); font-weight: 500; }
+    .union-effects-panel { display: flex; flex-direction: column; gap: 16px; }
+    .union-effect-box { background: #FAFAFA; border-radius: 8px; padding: 16px; border: 1px solid rgba(0,0,0,0.05); }
+    .union-effect-box h4 { font-size: 0.9rem; color: var(--maple-brown); margin-bottom: 10px; font-weight: 800; }
+    .union-effect-ul { list-style: none; display: flex; flex-direction: column; gap: 6px; padding: 0; }
+    .union-effect-ul li { font-size: 0.8rem; color: rgba(92,46,0,0.75); display: flex; gap: 6px; }
+    .union-effect-ul li::before { content: '•'; color: var(--maple-orange); font-weight: bold; }
+    .artifact-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+    @media (max-width: 800px) { .artifact-layout { grid-template-columns: 1fr; } }
+    .artifact-crystals { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; align-content: start; }
+    .artifact-crystal-card { background: #F4F7FF; border: 1px solid #D6E0FF; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+    .artifact-stars { color: #8C9EFF; font-size: 0.8rem; letter-spacing: 2px; }
+    .artifact-options { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .artifact-opt { background: #fff; padding: 5px 6px; border-radius: 4px; font-size: 0.75rem; color: #3949AB; font-weight: 700; border: 1px solid rgba(57,73,171,0.1); }
+    .champion-layout { display: flex; flex-direction: column; gap: 20px; }
+    .champion-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+    .champion-card { background: linear-gradient(135deg, #2C3E50, #3498DB); border-radius: 8px; padding: 16px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .champion-card::after { content: ''; position: absolute; right: -15px; bottom: -15px; width: 70px; height: 70px; background: rgba(255,255,255,0.08); border-radius: 50%; }
+    .champion-grade { display: inline-block; background: #E67E22; color: #fff; font-size: 0.7rem; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 10px; }
+    .champion-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+    .champion-info-text { font-size: 0.8rem; color: rgba(255,255,255,0.8); font-weight: 500; }
 
     /* ── Footer ── */
-    .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; }
+    .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; margin-top: auto; }
     .footer-inner { width: 100%; max-width: 1100px; padding: 0 24px; }
     .footer-main { padding: 32px 0; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
     .footer-col-title { font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; color: var(--maple-orange); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
@@ -356,7 +288,6 @@
     .footer-bottom-links { display: flex; gap: 16px; }
     .footer-bottom-links a { font-size: 0.72rem; color: rgba(92,46,0,0.6); font-weight: 700; text-decoration: none; transition: color .2s; }
     .footer-bottom-links a:hover { color: var(--maple-orange); }
-
     @media (max-width: 820px) { .footer-main { grid-template-columns: 1fr 1fr; gap: 24px; } }
     @media (max-width: 600px) { .header-inner { padding: 0 14px; } .char-header { flex-direction: column; align-items: flex-start; gap: 20px; } .footer-inner { padding: 0 16px; } .footer-bottom { flex-direction: column; align-items: flex-start; } }
     @media (max-width: 500px) { .footer-main { grid-template-columns: 1fr; } }
@@ -392,7 +323,7 @@
     <div class="header-inner">
       <div class="header-row2">
         <nav>
-          <a href="index.html">홈</a><a href="sunday.html">썬데이 예측</a><a href="#">시뮬레이터</a><a href="#">랜덤 추천 코디</a><a href="#">정보센터</a>
+          <a href="index.html">홈</a><a href="sunday.html">썬데이 예측</a><a href="#">시뮬레이터</a><a href="#">랜덤 추천 코디</a><a href="board.html">정보센터</a>
         </nav>
         <div class="header-search">
           <input v-model="searchKeyword" placeholder="닉네임 검색" @keyup.enter="reSearch" />
@@ -503,9 +434,9 @@
                   </div>
                 </template>
               </div>
+
               <div class="info-card">
                 <div class="section-title" style="margin-bottom: 0;">적용중인 세트 효과</div>
-                
                 <div class="set-effect-list" v-if="char && char.setEffects && char.setEffects.length > 0">
                   <div class="set-effect-item" v-for="(set, idx) in char.setEffects" :key="idx">
                     <div class="set-effect-header" @click="toggleSetEffect(idx)">
@@ -519,7 +450,6 @@
                     </div>
                   </div>
                 </div>
-                
                 <div v-else style="font-size: 0.82rem; color: rgba(92,46,0,0.5); text-align: center; padding: 20px 0 10px;">
                   적용중인 세트 효과가 없습니다.
                 </div>
@@ -537,23 +467,19 @@
               </div>
               <div class="equip-grid-compact">
                 <div class="equip-card" :class="{ 'star-force': eq.stars > 0 }" v-for="eq in char['equipsPreset' + activeEquipPreset]" :key="eq.slot" @click="openTooltip(eq)">
-  
                   <div class="equip-icon-wrap">
                     <div class="equip-slot">{{ eq.slot }}</div>
                     <img v-if="eq.itemIcon" class="equip-icon-img" :src="eq.itemIcon" :alt="eq.name" />
                   </div>
-
                   <div class="equip-info">
                     <div class="equip-header">
                       <div class="equip-stars" v-if="eq.stars > 0">
                         <span v-for="i in 30" :key="i" :class="i <= eq.stars ? 'star-on' : 'star-off'">★</span>
                       </div>
-  
                       <div class="equip-name">
                         {{ eq.name }}<span v-if="eq.scrollUpgrade"> (+{{ eq.scrollUpgrade }})</span>
                       </div>
                     </div>
-
                     <div class="equip-options-wrap" v-if="eq.potential || eq.additionalPotential">
                       <div v-if="eq.potential" class="equip-potential-box">
                         <div class="equip-potential-title" :class="eq.grade">잠재능력</div>
@@ -561,7 +487,6 @@
                           <span v-for="p in eq.potential" :key="p">• {{ p }}</span>
                         </div>
                       </div>
-
                       <div v-if="eq.additionalPotential" class="equip-potential-box">
                         <div class="equip-add-potential-title" :class="eq.additionalGrade">에디셔널</div>
                         <div class="equip-potential">
@@ -570,7 +495,6 @@
                       </div>
                     </div>
                   </div>
-  
                 </div>
               </div>
             </div>
@@ -584,21 +508,107 @@
         </div>
 
         <div v-if="tab==='union'">
-          <div class="info-card" style="max-width: 600px; margin: 0 auto;">
-            <div class="section-title" style="margin-bottom:11px;">유니온 정보</div>
-            <div class="info-row">
-              <span class="info-key">유니온 레벨</span>
-              <span class="info-val highlight">{{ char.unionLevel || '-' }}</span>
+          <div v-if="char.union" class="union-wrapper">
+            <div class="union-card">
+              <div class="union-card-title">
+                <div>
+                  유니온 공격대
+                  <span v-if="char.union.header" style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6); margin-left: 8px;">
+                    {{ char.union.header.grade }} Lv.{{ char.union.header.level }}
+                  </span>
+                </div>
+                <div class="union-preset-group">
+                  <button v-for="i in 5" :key="i" class="union-preset-btn" :class="{ active: activeUnionPreset === String(i) }" @click="activeUnionPreset = String(i)">
+                    프리셋 {{ i }}
+                  </button>
+                </div>
+              </div>
+              <div class="union-raider-content" v-if="char.union.presets && char.union.presets[activeUnionPreset]">
+                <div class="union-block-list">
+                  <div class="union-block-item" v-for="(block, idx) in char.union.presets[activeUnionPreset].blocks" :key="idx">
+                    <div class="union-block-job">{{ block.block_class }}</div>
+                    <div class="union-block-level">Lv.{{ block.block_level }}</div>
+                  </div>
+                </div>
+                <div class="union-effects-panel">
+                  <div class="union-effect-box">
+                    <h4>공격대원 효과</h4>
+                    <ul class="union-effect-ul">
+                      <li v-for="(eff, idx) in aggregatedRaiderStats" :key="idx">{{ eff }}</li>
+                    </ul>
+                    <div v-if="aggregatedRaiderStats.length === 0" style="font-size:0.8rem; color:#999;">효과가 없습니다.</div>
+                  </div>
+                  <div class="union-effect-box">
+                    <h4>공격대 점령 효과</h4>
+                    <ul class="union-effect-ul">
+                      <li v-for="(eff, idx) in aggregatedOccupiedStats" :key="idx">{{ eff }}</li>
+                    </ul>
+                    <div v-if="aggregatedOccupiedStats.length === 0" style="font-size:0.8rem; color:#999;">효과가 없습니다.</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else style="text-align:center; padding: 40px; font-size: 0.9rem; color: #888;">
+                해당 프리셋 정보가 없습니다.
+              </div>
             </div>
-            <div style="text-align:center; padding: 30px; font-size: 0.85rem; color: rgba(92,46,0,0.5);">
-              상세 유니온 및 공격대, 하이퍼스탯 정보는 추후 업데이트 예정입니다.
+
+            <div class="union-card">
+              <div class="union-card-title">
+                유니온 아티팩트
+                <span style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6);">Lv.{{ char.union.header.artifactLevel || 0 }}</span>
+              </div>
+              <div class="artifact-layout">
+                <div class="artifact-crystals" v-if="char.union.artifact && char.union.artifact.crystals.length > 0">
+                  <div class="artifact-crystal-card" v-for="(crystal, idx) in char.union.artifact.crystals" :key="idx">
+                    <div class="artifact-stars"><span v-for="i in 5" :key="i">★</span></div>
+                    <div class="artifact-options">
+                      <div class="artifact-opt" v-for="(opt, oIdx) in crystal.options" :key="oIdx">{{ opt }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else style="font-size: 0.85rem; color: #888; text-align: center; padding: 40px; background: #fafafa; border-radius: 8px;">장착된 크리스탈이 없습니다.</div>
+
+                <div class="union-effect-box" v-if="char.union.artifact && char.union.artifact.effects.length > 0">
+                  <h4>아티팩트 효과</h4>
+                  <ul class="union-effect-ul">
+                    <li v-for="(eff, idx) in char.union.artifact.effects" :key="idx">
+                      <span style="background: rgba(255,165,0,0.15); color: #E67E22; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 0.65rem; margin-right: 4px; height: fit-content;">Lv.{{ eff.level }}</span>
+                      <span style="line-height: 1.4;">{{ eff.name }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
+
+            <div class="union-card">
+              <div class="union-card-title">유니온 챔피언</div>
+              <div class="champion-layout" v-if="char.union.champion && char.union.champion.slots.length > 0">
+                <div class="champion-list">
+                  <div class="champion-card" v-for="(champ, idx) in char.union.champion.slots" :key="idx">
+                    <div class="champion-grade">{{ champ.championGrade }} 등급</div>
+                    <div class="champion-name">{{ champ.championName }}</div>
+                    <div class="champion-info-text">{{ champ.championClass }}</div>
+                  </div>
+                </div>
+                <div class="union-effect-box" v-if="char.union.champion.totalBadgeEffects.length > 0">
+                  <h4>챔피언 휘장 효과</h4>
+                  <ul class="union-effect-ul">
+                    <li v-for="(eff, idx) in char.union.champion.totalBadgeEffects" :key="idx">{{ eff }}</li>
+                  </ul>
+                </div>
+              </div>
+              <div v-else style="font-size: 0.85rem; color: #888; text-align: center; padding: 20px;">배치된 유니온 챔피언이 없습니다.</div>
+            </div>
+
+          </div>
+          <div v-else style="text-align:center; padding: 80px 20px; color: #888;">
+            유니온 데이터가 없습니다.
           </div>
         </div>
-
       </div>
     </div>
   </div>
+
   <div class="tooltip-overlay" v-if="selectedEquip" @click.self="closeTooltip">
     <div class="tooltip-box">
       <button class="tooltip-close" @click="closeTooltip">×</button>
@@ -669,6 +679,7 @@
       </div>
     </div>
   </div>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-main">
@@ -682,7 +693,7 @@
         </div>
         <div class="footer-col">
           <div class="footer-col-title">메뉴</div>
-          <a href="#">홈</a><a href="#">썬데이 예측</a><a href="#">시뮬레이터</a><a href="#">랜덤 추천 코디</a><a href="#">정보센터</a>
+          <a href="index.html">홈</a><a href="sunday.html">썬데이 예측</a><a href="#">시뮬레이터</a><a href="#">랜덤 추천 코디</a><a href="board.html">정보센터</a>
         </div>
         <div class="footer-col">
           <div class="footer-col-title">문의 &amp; 지원</div>
@@ -708,7 +719,7 @@
 </div>
 
 <script>
-const { createApp, ref, onMounted } = Vue;
+const { createApp, ref, onMounted, computed } = Vue;
 
 createApp({
   setup() {
@@ -720,13 +731,12 @@ createApp({
     const tab = ref('stats');
     
     const activeAbilityPreset = ref('1');
-    const activeEquipPreset = ref('1'); // 장비 프리셋 번호
+    const activeEquipPreset = ref('1');
+    const activeUnionPreset = ref('1'); 
 
-    // ===== 추가: 세트 효과 열림/닫힘 상태 관리 =====
     const expandedSetIdx = ref(null);
 
     function toggleSetEffect(idx) {
-      // 이미 열려있는 항목을 클릭하면 닫고, 아니면 해당 항목을 엽니다.
       if (expandedSetIdx.value === idx) {
         expandedSetIdx.value = null;
       } else {
@@ -734,18 +744,15 @@ createApp({
       }
     }
 
-    // --- 툴팁(모달) 관련 상태 및 함수 ---
     const selectedEquip = ref(null);
 
     function openTooltip(eq) {
       selectedEquip.value = eq;
-      // 툴팁(모달)이 열렸을 때 배경 스크롤 방지
       document.body.style.overflow = 'hidden';
     }
 
     function closeTooltip() {
       selectedEquip.value = null;
-      // 스크롤 방지 해제
       document.body.style.overflow = '';
     }
 
@@ -769,13 +776,11 @@ createApp({
       return '';
     }
 
-    // ' 소울 적용' 또는 ' 소울'이라는 단어를 제거해 줌
     function formatTopSoulName(name) {
       if (!name) return '';
       return name.replace(/\s*소울\s*적용$/, '').replace(/\s*소울$/, '');
     }
 
-    // 기본 스탯 처리 함수 (INT, STR 등)
     function renderStatLine(label, key) {
       if (!selectedEquip.value || !selectedEquip.value.totalOption) return '';
       const total = selectedEquip.value.totalOption[key] || 0;
@@ -786,12 +791,10 @@ createApp({
       const etc = (selectedEquip.value.etcOption && selectedEquip.value.etcOption[key]) || 0;
       const star = (selectedEquip.value.starforceOption && selectedEquip.value.starforceOption[key]) || 0;
 
-      // 추가 스탯이 없는 경우
       if (add === 0 && etc === 0 && star === 0 && base === total) {
         return `<div class="stat-line">${label} : +${total}</div>`;
       }
 
-      // 인게임 형식: INT : +382 ( 150 +55 +32 +145 )
       let html = `<div class="stat-line"><span class="c-cyan">${label} : +${total}</span>&nbsp;( ${base} `;
       if (add > 0) html += `<span class="c-green">+${add}</span> `;
       if (etc > 0) html += `<span class="c-blue">+${etc}</span> `;
@@ -800,7 +803,6 @@ createApp({
       return html;
     }
 
-    // 퍼센트 스탯 처리 함수 (보공, 방무 등)
     function renderPercentStatLine(label, key) {
       if (!selectedEquip.value || !selectedEquip.value.totalOption) return '';
       const total = selectedEquip.value.totalOption[key] || 0;
@@ -809,7 +811,6 @@ createApp({
       const base = (selectedEquip.value.baseOption && selectedEquip.value.baseOption[key]) || 0;
       const add = (selectedEquip.value.addOption && selectedEquip.value.addOption[key]) || 0;
 
-      // 추가 옵션이 없는 경우
       if (add === 0 && base === total) {
         return `<div class="stat-line">${label} : +${total}%</div>`;
       }
@@ -826,6 +827,75 @@ createApp({
         window.location.href = `result.html?name=${encodeURIComponent(name)}`;
       }
     }
+
+    // === 유니온 효과 문자열 자동 합산 로직 ===
+    function aggregateEffects(effects) {
+      if (!effects || effects.length === 0) return [];
+      
+      const parsed = {};
+      const unparsed = {};
+
+      // "STR 100 증가", "보스 몬스터 공격 시 데미지 6% 증가" 등을 파싱하는 정규식
+      const regex = /^(.*?)\s+([0-9.]+)(%?)\s*증가$/;
+
+      effects.forEach(eff => {
+        const match = eff.match(regex);
+        if (match) {
+          const statName = match[1].trim();
+          const value = parseFloat(match[2]);
+          const isPercent = match[3] === '%';
+          
+          const key = statName + (isPercent ? '%' : '');
+          if (parsed[key]) {
+            parsed[key].value += value;
+          } else {
+            parsed[key] = {
+              name: statName,
+              value: value,
+              isPercent: isPercent
+            };
+          }
+        } else {
+          if (unparsed[eff]) {
+            unparsed[eff]++;
+          } else {
+            unparsed[eff] = 1;
+          }
+        }
+      });
+
+      const result = [];
+      
+      // 보기 좋게 스탯 이름순으로 정렬
+      const sortedKeys = Object.keys(parsed).sort((a, b) => a.localeCompare(b));
+
+      for (const key of sortedKeys) {
+        const item = parsed[key];
+        // 9.00 같은 소수점은 9로, 4.50은 4.5로 깔끔하게 처리
+        const valStr = Number.isInteger(item.value) ? item.value : item.value.toFixed(2).replace(/\.?0+$/, '');
+        result.push(`${item.name} ${valStr}${item.isPercent ? '%' : ''} 증가`);
+      }
+
+      for (const eff in unparsed) {
+        for (let i = 0; i < unparsed[eff]; i++) {
+          result.push(eff);
+        }
+      }
+
+      return result;
+    }
+
+    // 합산된 공격대원 효과
+    const aggregatedRaiderStats = computed(() => {
+      if (!char.value || !char.value.union || !char.value.union.presets || !char.value.union.presets[activeUnionPreset.value]) return [];
+      return aggregateEffects(char.value.union.presets[activeUnionPreset.value].raiderStats);
+    });
+
+    // 합산된 공격대 점령 효과
+    const aggregatedOccupiedStats = computed(() => {
+      if (!char.value || !char.value.union || !char.value.union.presets || !char.value.union.presets[activeUnionPreset.value]) return [];
+      return aggregateEffects(char.value.union.presets[activeUnionPreset.value].occupiedStats);
+    });
 
     onMounted(async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -859,6 +929,9 @@ createApp({
         if (char.value.equipmentPresetNo) {
             activeEquipPreset.value = String(char.value.equipmentPresetNo);
         }
+        if (char.value.union && char.value.union.activePreset) {
+            activeUnionPreset.value = String(char.value.union.activePreset);
+        }
         
       } catch (e) {
         error.value = e.message;
@@ -869,15 +942,14 @@ createApp({
 
     return { 
       searchKeyword, currentName, loading, error, char, tab, 
-      activeAbilityPreset, activeEquipPreset, reSearch,
+      activeAbilityPreset, activeEquipPreset, activeUnionPreset, reSearch,
       
-      // 툴팁 관련 리턴 변수/함수들 추가
       selectedEquip, openTooltip, closeTooltip, 
       getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine,
-      formatTopSoulName,
-      // ===== 추가: 세트 효과 리턴 =====
-      expandedSetIdx, toggleSetEffect
+      formatTopSoulName, expandedSetIdx, toggleSetEffect,
 
+      // 합산 결과 내보내기
+      aggregatedRaiderStats, aggregatedOccupiedStats
     };
   }
 }).mount('#app');
