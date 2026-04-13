@@ -511,12 +511,13 @@
           <div v-if="char.union" class="union-wrapper">
             <div class="union-card">
               <div class="union-card-title">
-                <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
                   유니온 공격대
-                  <span v-if="char.union.header" style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6); margin-left: 8px;">
-                    {{ char.union.header.grade }} Lv.{{ char.union.header.level }}
+                  <span v-if="char.union.header" style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6);">
+                    Lv.{{ char.union.header.level }}
                   </span>
                 </div>
+                
                 <div class="union-preset-group">
                   <button v-for="i in 5" :key="i" class="union-preset-btn" :class="{ active: activeUnionPreset === String(i) }" @click="activeUnionPreset = String(i)">
                     프리셋 {{ i }}
@@ -554,8 +555,10 @@
 
             <div class="union-card">
               <div class="union-card-title">
-                유니온 아티팩트
-                <span style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6);">Lv.{{ char.union.header.artifactLevel || 0 }}</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  유니온 아티팩트
+                  <span style="font-size: 0.9rem; font-weight: 700; color: rgba(92,46,0,0.6);">Lv.{{ char.union.header.artifactLevel || 0 }}</span>
+                </div>
               </div>
               <div class="artifact-layout">
                 <div class="artifact-crystals" v-if="char.union.artifact && char.union.artifact.crystals.length > 0">
