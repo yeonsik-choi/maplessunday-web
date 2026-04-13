@@ -264,12 +264,22 @@
     .artifact-stars { color: #8C9EFF; font-size: 0.8rem; letter-spacing: 2px; }
     .artifact-options { display: flex; flex-direction: column; gap: 4px; width: 100%; }
     .artifact-opt { background: #fff; padding: 5px 6px; border-radius: 4px; font-size: 0.75rem; color: #3949AB; font-weight: 700; border: 1px solid rgba(57,73,171,0.1); }
-    .champion-layout { display: flex; flex-direction: column; gap: 20px; }
-    .champion-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-    .champion-card { background: linear-gradient(135deg, #2C3E50, #3498DB); border-radius: 8px; padding: 16px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    /* ── 유니온 챔피언 스타일 수정 ── */
+    .champion-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+    @media (max-width: 800px) { .champion-layout { grid-template-columns: 1fr; } }
+    
+    .champion-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 500px) { .champion-list { grid-template-columns: repeat(2, 1fr); } }
+    
+    .champion-card { background: linear-gradient(135deg, #2C3E50, #3498DB); border-radius: 8px; padding: 16px; color: #fff; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); min-height: 100px; display: flex; flex-direction: column; justify-content: center; }
     .champion-card::after { content: ''; position: absolute; right: -15px; bottom: -15px; width: 70px; height: 70px; background: rgba(255,255,255,0.08); border-radius: 50%; }
-    .champion-grade { display: inline-block; background: #E67E22; color: #fff; font-size: 0.7rem; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 10px; }
-    .champion-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+    
+    /* 빈 슬롯(데이터 없음) 처리 */
+    .champion-card.empty { background: #f0f0f0; border: 1px dashed #d0d0d0; box-shadow: none; }
+    .champion-card.empty::after { display: none; }
+    
+    .champion-grade { align-self: flex-start; background: #E67E22; color: #fff; font-size: 0.7rem; font-weight: 900; padding: 3px 10px; border-radius: 12px; margin-bottom: 6px; }
+    .champion-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 2px; }
     .champion-info-text { font-size: 0.8rem; color: rgba(255,255,255,0.8); font-weight: 500; }
 
     /* ── Footer ── */
@@ -585,19 +595,24 @@
 
             <div class="union-card">
               <div class="union-card-title">유니온 챔피언</div>
-              <div class="champion-layout" v-if="char.union.champion && char.union.champion.slots.length > 0">
+              <div class="champion-layout" v-if="char.union && char.union.champion && char.union.champion.slots.length > 0">
                 <div class="champion-list">
-                  <div class="champion-card" v-for="(champ, idx) in char.union.champion.slots" :key="idx">
-                    <div class="champion-grade">{{ champ.championGrade }} 등급</div>
-                    <div class="champion-name">{{ champ.championName }}</div>
-                    <div class="champion-info-text">{{ champ.championClass }}</div>
-                  </div>
+                  <template v-for="(champ, idx) in championSlotsArray" :key="idx">
+                    <div class="champion-card" v-if="champ">
+                      <div class="champion-grade">{{ champ.championGrade }} 등급</div>
+                      <div class="champion-name">{{ champ.championName }}</div>
+                      <div class="champion-info-text">{{ champ.championClass }}</div>
+                    </div>
+                    <div class="champion-card empty" v-else></div>
+                  </template>
                 </div>
-                <div class="union-effect-box" v-if="char.union.champion.totalBadgeEffects.length > 0">
+                
+                <div class="union-effect-box">
                   <h4>챔피언 휘장 효과</h4>
-                  <ul class="union-effect-ul">
+                  <ul class="union-effect-ul" v-if="char.union && char.union.champion && char.union.champion.totalBadgeEffects.length > 0">
                     <li v-for="(eff, idx) in char.union.champion.totalBadgeEffects" :key="idx">{{ eff }}</li>
                   </ul>
+                  <div v-else style="font-size: 0.85rem; color: #888; margin-top: 8px;">적용중인 효과가 없습니다.</div>
                 </div>
               </div>
               <div v-else style="font-size: 0.85rem; color: #888; text-align: center; padding: 20px;">배치된 유니온 챔피언이 없습니다.</div>
@@ -900,6 +915,19 @@ createApp({
       return aggregateEffects(char.value.union.presets[activeUnionPreset.value].occupiedStats);
     });
 
+    // (1) setup() 함수 안쪽 적당한 위치에 추가
+    const championSlotsArray = computed(() => {
+      const arr = new Array(6).fill(null);
+      if (char.value && char.value.union && char.value.union.champion && char.value.union.champion.slots) {
+        char.value.union.champion.slots.forEach(champ => {
+          if (champ.championSlot >= 1 && champ.championSlot <= 6) {
+            arr[champ.championSlot - 1] = champ; // 슬롯 번호에 맞춰 데이터 삽입
+          }
+        });
+      }
+      return arr;
+    });
+
     onMounted(async () => {
       const urlParams = new URLSearchParams(window.location.search);
       const name = urlParams.get('name');
@@ -952,7 +980,8 @@ createApp({
       formatTopSoulName, expandedSetIdx, toggleSetEffect,
 
       // 합산 결과 내보내기
-      aggregatedRaiderStats, aggregatedOccupiedStats
+      aggregatedRaiderStats, aggregatedOccupiedStats,
+      championSlotsArray
     };
   }
 }).mount('#app');
