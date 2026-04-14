@@ -169,16 +169,6 @@ class JobSkillUi(BaseModel):
     skillIcon: str = ""
     skillDescription: str = ""
     skillEffect: str = ""
-    category: str | None = None
-    maxLevel: int | None = None
-    isMaxLevel: bool = False
-
-
-class JobSkillCategoryGroupUi(BaseModel):
-    model_config = _MODEL
-
-    category: str
-    skills: list[JobSkillUi] = Field(default_factory=list)
 
 
 class HexaStatLineUi(BaseModel):
@@ -244,7 +234,6 @@ class CharacterResponse(BaseModel):
 
     jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
     jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
-    jobSkillSixthGrouped: list[JobSkillCategoryGroupUi] = Field(default_factory=list)
     hexaStatColumns: list[HexaStatColumnUi] = Field(default_factory=list)
     hexaResourceTotals: HexaResourceTotalsUi = Field(
         default_factory=HexaResourceTotalsUi
