@@ -8,7 +8,6 @@ import httpx
 from fastapi import APIRouter, HTTPException
 
 from core.config import NEXON_HTTP_TRUST_ENV
-from core.nexon import raise_nexon_request_error, require_nexon_api_key
 from schemas.character_all import (
     AbilityPresetUi,
     ArcaneRow,
@@ -41,6 +40,8 @@ from services.nexon_api import (
     fetch_union_raider,
     get_ocid,
     get_yesterday,
+    raise_nexon_request_error,
+    require_nexon_api_key,
 )
 
 logger = logging.getLogger(__name__)

@@ -4,9 +4,26 @@ from zoneinfo import ZoneInfo
 import httpx
 from fastapi import HTTPException
 
-from core.config import BASE_URL, HEADERS
+from core.config import BASE_URL, HEADERS, NEXON_API_KEY
 
 KST = ZoneInfo("Asia/Seoul")
+
+
+def require_nexon_api_key() -> None:
+    if not NEXON_API_KEY:
+        raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
+
+
+def raise_nexon_request_error(exc: httpx.RequestError) -> None:
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            "넥슨 오픈 API에 연결하지 못했습니다. "
+            f"({type(exc).__name__}: {exc}) "
+            "VPN·회사 프록시·HTTP_PROXY 환경이면 비활성화 후 다시 시도하거나, "
+            "방화벽에서 open.api.nexon.com 허용을 확인하세요."
+        ),
+    ) from exc
 
 
 def _raise_for_failed_nexon(response: httpx.Response, error_detail: str) -> None:
