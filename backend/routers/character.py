@@ -315,13 +315,29 @@ def _require_key():
         raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
 
 
+_UNION_BLOCK_COORD_KEYS = frozenset(
+    (
+        "block_control_point",
+        "blockControlPoint",
+        "block_position",
+        "blockPosition",
+    )
+)
+
+
+def _union_block_without_coords(block: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in block.items() if k not in _UNION_BLOCK_COORD_KEYS}
+
+
 def _build_preset(preset_data: dict | None) -> UnionPresetUi:
     if not preset_data:
         return UnionPresetUi()
     blocks = _nget(preset_data, "union_block", "unionBlock")
     if not isinstance(blocks, list):
         blocks = []
-    blocks_out: list[dict[str, Any]] = [dict(b) for b in blocks if isinstance(b, dict)]
+    blocks_out: list[dict[str, Any]] = [
+        _union_block_without_coords(dict(b)) for b in blocks if isinstance(b, dict)
+    ]
     blocks_out.sort(
         key=lambda b: _parse_int(_nget(b, "block_level", "blockLevel")) or 0,
         reverse=True,
@@ -1024,8 +1040,8 @@ async def get_character_info(nickname: str):
         equipsPreset1=ep0,
         equipsPreset2=ep1,
         equipsPreset3=ep2,
-        union=union_detail,
         jobSkillSixth=job_sixth,
         jobSkillFifth=job_fifth,
         hexaStatColumns=hexa_stat_cols,
+        union=union_detail,
     )

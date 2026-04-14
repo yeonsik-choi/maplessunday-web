@@ -221,8 +221,8 @@ class CharacterResponse(BaseModel):
     equipsPreset2: list[EquipUi] = Field(default_factory=list)
     equipsPreset3: list[EquipUi] = Field(default_factory=list)
 
-    union: UnionResponse | None = None
-
     jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
     jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
     hexaStatColumns: list[HexaStatColumnUi] = Field(default_factory=list)
+
+    union: UnionResponse | None = None
