@@ -201,7 +201,19 @@
     .set-effect-details li { font-size: 0.75rem; color: rgba(92,46,0,0.75); line-height: 1.5; display: flex; gap: 6px; word-break: keep-all; }
     .set-effect-details li::before { content: '•'; color: var(--maple-orange); font-weight: bold; }
 
-    /* ── 장비 상세 툴팁 (모달) ── */
+    /* ── 스킬 탭 스타일 ── */
+    .skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .skill-card { background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(255,250,240,0.9)); border: 1px solid rgba(255,165,0,0.25); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: row; align-items: flex-start; gap: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); cursor: pointer; transition: all .2s ease; }
+    .skill-card:hover { border-color: var(--maple-orange); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255,165,0,0.15); }
+    .skill-icon-wrap { flex-shrink: 0; width: 48px; height: 48px; background: rgba(0,0,0,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(0,0,0,0.1); }
+    .skill-icon-img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+    .skill-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .skill-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .skill-name { font-size: 0.95rem; font-weight: 800; color: var(--maple-brown); }
+    .skill-level { font-size: 0.75rem; font-weight: 700; color: var(--maple-orange); background: rgba(255,165,0,0.15); padding: 2px 6px; border-radius: 4px; }
+    .skill-desc { font-size: 0.75rem; color: rgba(92,46,0,0.6); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    /* ── 장비/스킬 상세 툴팁 (모달) ── */
     .tooltip-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
     .tooltip-box { background: rgba(17, 17, 17, 0.95); border: 1.5px solid rgba(255,255,255,0.8); border-radius: 8px; width: 100%; max-width: 320px; color: #fff; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
     .tooltip-close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; opacity: 0.6; }
@@ -240,13 +252,7 @@
     .union-preset-btn.active { background: var(--maple-orange); color: #fff; border-color: var(--maple-orange); box-shadow: 0 3px 8px rgba(255,107,0,0.25); }
     .union-raider-content { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
     @media (max-width: 800px) { .union-raider-content { grid-template-columns: 1fr; } }
-    /* 좌측 영역의 스크롤과 높이 제한을 없애고 전체 목록을 펼침 */
-    .union-block-list { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
-      gap: 10px; 
-      align-content: start; 
-    }
+    .union-block-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; align-content: start; }
     .union-block-item { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; transition: transform 0.15s; }
     .union-block-item:hover { transform: translateY(-2px); border-color: rgba(255,165,0,0.3); }
     .union-block-job { font-size: 0.85rem; font-weight: 800; color: var(--maple-brown); }
@@ -259,105 +265,27 @@
     .union-effect-ul li::before { content: '•'; color: var(--maple-orange); font-weight: bold; }
     .artifact-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
     @media (max-width: 800px) { .artifact-layout { grid-template-columns: 1fr; } }
-    /* 크리스탈을 3열로 고정하여 가로 넓이를 확장 */
     .artifact-crystals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-content: start; }
-    /* 모바일 화면에서는 너무 좁아지지 않게 2열 또는 1열로 조정 (선택 사항) */
-    @media (max-width: 600px) { 
-      .artifact-crystals { grid-template-columns: repeat(2, 1fr); } 
-    }
-    @media (max-width: 400px) { 
-      .artifact-crystals { grid-template-columns: 1fr; } 
-    }
+    @media (max-width: 600px) { .artifact-crystals { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 400px) { .artifact-crystals { grid-template-columns: 1fr; } }
     .artifact-crystal-card { background: #F4F7FF; border: 1px solid #D6E0FF; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
     .artifact-stars { color: #8C9EFF; font-size: 0.8rem; letter-spacing: 2px; }
     .artifact-options { display: flex; flex-direction: column; gap: 4px; width: 100%; }
     .artifact-opt { background: #fff; padding: 5px 6px; border-radius: 4px; font-size: 0.75rem; color: #3949AB; font-weight: 700; border: 1px solid rgba(57,73,171,0.1); }
-    /* ── 유니온 챔피언 스타일 수정 ── */
     .champion-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
     @media (max-width: 800px) { .champion-layout { grid-template-columns: 1fr; } }
-    
     .champion-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 500px) { .champion-list { grid-template-columns: repeat(2, 1fr); } }
-    
-    /* 챔피언 카드 기본 디자인: 세련된 슬레이트 네이비 톤 + 미세한 테두리 */
-    .champion-card { 
-      background: linear-gradient(135deg, #1E293B, #334155); 
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px; 
-      padding: 16px 18px; 
-      color: #F8FAFC; 
-      position: relative; 
-      overflow: hidden; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-      min-height: 110px; 
-      display: flex; 
-      flex-direction: column; 
-      justify-content: center; 
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-    
-    /* 마우스 호버 시 효과: 살짝 떠오르며 메이플 오렌지 빛 그림자 */
-    .champion-card:hover:not(.empty) {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(255, 165, 0, 0.15);
-      border-color: rgba(255, 165, 0, 0.5);
-    }
-    
-    /* 카드 배경 장식 (은은한 빛과 원형 패턴) */
-    .champion-card::before {
-      content: ''; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px;
-      background: radial-gradient(circle, rgba(255,165,0,0.15) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .champion-card::after { 
-      content: ''; position: absolute; right: -15px; bottom: -15px; width: 60px; height: 60px; 
-      border: 4px solid rgba(255,255,255,0.04); border-radius: 50%; 
-      pointer-events: none;
-    }
-    
-    /* 빈 슬롯(데이터 없음) 처리: 점선과 연한 배경, 텍스트 추가 */
-    .champion-card.empty { 
-      background: rgba(0,0,0,0.015); 
-      border: 2px dashed rgba(0,0,0,0.1); 
-      box-shadow: none; 
-      display: flex; align-items: center; justify-content: center;
-    }
+    .champion-card { background: linear-gradient(135deg, #1E293B, #334155); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 18px; color: #F8FAFC; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 110px; display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+    .champion-card:hover:not(.empty) { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 165, 0, 0.15); border-color: rgba(255, 165, 0, 0.5); }
+    .champion-card::before { content: ''; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(255,165,0,0.15) 0%, transparent 70%); pointer-events: none; }
+    .champion-card::after { content: ''; position: absolute; right: -15px; bottom: -15px; width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.04); border-radius: 50%; pointer-events: none; }
+    .champion-card.empty { background: rgba(0,0,0,0.015); border: 2px dashed rgba(0,0,0,0.1); box-shadow: none; display: flex; align-items: center; justify-content: center; }
     .champion-card.empty::before { display: none; }
-    .champion-card.empty::after { 
-      content: '배치 안 됨'; 
-      display: block; 
-      color: rgba(92, 46, 0, 0.3); 
-      font-size: 0.8rem; 
-      font-weight: 700;
-      position: static; width: auto; height: auto; border: none;
-    }
-    
-    /* 등급 뱃지: 그라데이션과 그림자로 입체감 추가 */
-    .champion-grade { 
-      align-self: flex-start; 
-      background: linear-gradient(135deg, #FF8C00, #E65100); 
-      color: #fff; 
-      font-size: 0.72rem; 
-      font-weight: 900; 
-      padding: 4px 12px; 
-      border-radius: 12px; 
-      margin-bottom: 8px; 
-      box-shadow: 0 2px 6px rgba(230, 81, 0, 0.3);
-      letter-spacing: 0.5px;
-    }
-    
-    /* 이름 및 직업 텍스트 */
-    .champion-name { 
-      font-size: 1.1rem; 
-      font-weight: 900; 
-      margin-bottom: 4px; 
-      text-shadow: 0 1px 2px rgba(0,0,0,0.3); 
-    }
-    .champion-info-text { 
-      font-size: 0.8rem; 
-      color: rgba(255,255,255,0.65); 
-      font-weight: 600; 
-    }
+    .champion-card.empty::after { content: '배치 안 됨'; display: block; color: rgba(92, 46, 0, 0.3); font-size: 0.8rem; font-weight: 700; position: static; width: auto; height: auto; border: none; }
+    .champion-grade { align-self: flex-start; background: linear-gradient(135deg, #FF8C00, #E65100); color: #fff; font-size: 0.72rem; font-weight: 900; padding: 4px 12px; border-radius: 12px; margin-bottom: 8px; box-shadow: 0 2px 6px rgba(230, 81, 0, 0.3); letter-spacing: 0.5px; }
+    .champion-name { font-size: 1.1rem; font-weight: 900; margin-bottom: 4px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .champion-info-text { font-size: 0.8rem; color: rgba(255,255,255,0.65); font-weight: 600; }
 
     /* ── Footer ── */
     .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; margin-top: auto; }
@@ -591,6 +519,42 @@
         <div v-if="tab==='equip'">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <div class="section-title" style="margin-bottom: 0;">스킬</div>
+            <div class="preset-btns">
+               <button class="preset-btn" style="width: auto; padding: 0 12px;" :class="{ active: activeSkillTab === '6' }" @click="activeSkillTab = '6'">6차</button>
+               <button class="preset-btn" style="width: auto; padding: 0 12px;" :class="{ active: activeSkillTab === '5' }" @click="activeSkillTab = '5'">5차</button>
+            </div>
+          </div>
+
+          <div class="skill-grid" v-if="activeSkillTab === '6'">
+            <div class="skill-card" v-for="skill in char.jobSkillSixth" :key="skill.skillName" @click="openSkillTooltip(skill)">
+              <div class="skill-icon-wrap">
+                <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+              </div>
+              <div class="skill-info">
+                <div class="skill-header">
+                  <span class="skill-name">{{ skill.skillName }}</span>
+                  <span class="skill-level">Lv.{{ skill.skillLevel }}</span>
+                </div>
+                <div class="skill-desc">{{ skill.skillDescription }}</div>
+              </div>
+            </div>
+            <div v-if="!char.jobSkillSixth || char.jobSkillSixth.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #888;">6차 스킬 정보가 없습니다.</div>
+          </div>
+
+          <div class="skill-grid" v-if="activeSkillTab === '5'">
+            <div class="skill-card" v-for="skill in char.jobSkillFifth" :key="skill.skillName" @click="openSkillTooltip(skill)">
+              <div class="skill-icon-wrap">
+                <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+              </div>
+              <div class="skill-info">
+                <div class="skill-header">
+                  <span class="skill-name">{{ skill.skillName }}</span>
+                  <span class="skill-level">Lv.{{ skill.skillLevel }}</span>
+                </div>
+                <div class="skill-desc">{{ skill.skillDescription }}</div>
+              </div>
+            </div>
+            <div v-if="!char.jobSkillFifth || char.jobSkillFifth.length === 0" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #888;">5차 스킬 정보가 없습니다.</div>
           </div>
         </div>
 
@@ -775,6 +739,31 @@
     </div>
   </div>
 
+  <div class="tooltip-overlay" v-if="selectedSkill" @click.self="closeSkillTooltip">
+    <div class="tooltip-box" style="max-width: 360px;">
+      <button class="tooltip-close" @click="closeSkillTooltip">×</button>
+      
+      <div class="tooltip-title-area" style="padding-top: 15px;">
+        <div class="tooltip-item-name c-white">{{ selectedSkill.skillName }}</div>
+        <div class="tooltip-grade-text c-gold">Lv.{{ selectedSkill.skillLevel }}</div>
+      </div>
+
+      <div class="tooltip-icon-area">
+        <div class="tooltip-icon-wrap" style="background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);">
+          <img v-if="selectedSkill.skillIcon" :src="selectedSkill.skillIcon" :alt="selectedSkill.skillName" />
+        </div>
+      </div>
+
+      <div class="tooltip-stats-area" style="white-space: pre-wrap; color: #ccc;">
+        {{ selectedSkill.skillDescription }}
+      </div>
+      <div class="tooltip-stats-area" style="white-space: pre-wrap; color: #fff; border-bottom: none;" v-if="selectedSkill.skillEffect">
+        <span style="color: #ffcc00;">[현재 레벨 {{ selectedSkill.skillLevel }}]</span><br>
+        {{ selectedSkill.skillEffect }}
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-main">
@@ -828,6 +817,7 @@ createApp({
     const activeAbilityPreset = ref('1');
     const activeEquipPreset = ref('1');
     const activeUnionPreset = ref('1'); 
+    const activeSkillTab = ref('6');
 
     const expandedSetIdx = ref(null);
 
@@ -840,6 +830,7 @@ createApp({
     }
 
     const selectedEquip = ref(null);
+    const selectedSkill = ref(null);
 
     function openTooltip(eq) {
       selectedEquip.value = eq;
@@ -848,6 +839,16 @@ createApp({
 
     function closeTooltip() {
       selectedEquip.value = null;
+      document.body.style.overflow = '';
+    }
+
+    function openSkillTooltip(skill) {
+      selectedSkill.value = skill;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSkillTooltip() {
+      selectedSkill.value = null;
       document.body.style.overflow = '';
     }
 
@@ -930,7 +931,6 @@ createApp({
       const parsed = {};
       const unparsed = {};
 
-      // "STR 100 증가", "보스 몬스터 공격 시 데미지 6% 증가" 등을 파싱하는 정규식
       const regex = /^(.*?)\s+([0-9.]+)(%?)\s*증가$/;
 
       effects.forEach(eff => {
@@ -961,12 +961,10 @@ createApp({
 
       const result = [];
       
-      // 보기 좋게 스탯 이름순으로 정렬
       const sortedKeys = Object.keys(parsed).sort((a, b) => a.localeCompare(b));
 
       for (const key of sortedKeys) {
         const item = parsed[key];
-        // 9.00 같은 소수점은 9로, 4.50은 4.5로 깔끔하게 처리
         const valStr = Number.isInteger(item.value) ? item.value : item.value.toFixed(2).replace(/\.?0+$/, '');
         result.push(`${item.name} ${valStr}${item.isPercent ? '%' : ''} 증가`);
       }
@@ -980,25 +978,22 @@ createApp({
       return result;
     }
 
-    // 합산된 공격대원 효과
     const aggregatedRaiderStats = computed(() => {
       if (!char.value || !char.value.union || !char.value.union.presets || !char.value.union.presets[activeUnionPreset.value]) return [];
       return aggregateEffects(char.value.union.presets[activeUnionPreset.value].raiderStats);
     });
 
-    // 합산된 공격대 점령 효과
     const aggregatedOccupiedStats = computed(() => {
       if (!char.value || !char.value.union || !char.value.union.presets || !char.value.union.presets[activeUnionPreset.value]) return [];
       return aggregateEffects(char.value.union.presets[activeUnionPreset.value].occupiedStats);
     });
 
-    // (1) setup() 함수 안쪽 적당한 위치에 추가
     const championSlotsArray = computed(() => {
       const arr = new Array(6).fill(null);
       if (char.value && char.value.union && char.value.union.champion && char.value.union.champion.slots) {
         char.value.union.champion.slots.forEach(champ => {
           if (champ.championSlot >= 1 && champ.championSlot <= 6) {
-            arr[champ.championSlot - 1] = champ; // 슬롯 번호에 맞춰 데이터 삽입
+            arr[champ.championSlot - 1] = champ;
           }
         });
       }
@@ -1030,7 +1025,6 @@ createApp({
         
         char.value = await response.json();
 
-        // API 응답으로부터 현재 선택되어 있는 프리셋 번호 설정
         if (char.value.abilityPresetNo) {
             activeAbilityPreset.value = String(char.value.abilityPresetNo);
         }
@@ -1050,13 +1044,12 @@ createApp({
 
     return { 
       searchKeyword, currentName, loading, error, char, tab, 
-      activeAbilityPreset, activeEquipPreset, activeUnionPreset, reSearch,
+      activeAbilityPreset, activeEquipPreset, activeUnionPreset, activeSkillTab, reSearch,
       
-      selectedEquip, openTooltip, closeTooltip, 
+      selectedEquip, selectedSkill, openTooltip, closeTooltip, openSkillTooltip, closeSkillTooltip,
       getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine,
       formatTopSoulName, expandedSetIdx, toggleSetEffect,
 
-      // 합산 결과 내보내기
       aggregatedRaiderStats, aggregatedOccupiedStats,
       championSlotsArray
     };
