@@ -91,18 +91,6 @@ async def fetch_character_skill(
     )
 
 
-async def fetch_character_hexamatrix_stat(
-    client: httpx.AsyncClient, ocid: str, date: str
-) -> dict:
-    return await _fetch_ocid_date(
-        client,
-        "character/hexamatrix-stat",
-        ocid,
-        date,
-        "HEXA 스탯 조회 실패",
-    )
-
-
 async def fetch_character_basic(
     client: httpx.AsyncClient, ocid: str, date: str
 ) -> dict:

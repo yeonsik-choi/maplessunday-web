@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import unicodedata
-from typing import Any, Literal, cast
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, HTTPException
@@ -15,9 +15,6 @@ from schemas.character_all import (
     CharacterResponse,
     EquipTotalOptionUi,
     EquipUi,
-    HexaStatColumnUi,
-    HexaStatLineUi,
-    HexaStatSlotUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -32,7 +29,6 @@ from schemas.character_all import (
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
-    fetch_character_hexamatrix_stat,
     fetch_character_popularity,
     fetch_character_skill,
     fetch_character_stat,
@@ -67,7 +63,6 @@ _NEXON_FETCH_NAMES = (
     "set_effect",
     "skill_grade_6",
     "skill_grade_5",
-    "hexamatrix_stat",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -709,21 +704,6 @@ def _to_equip(item: dict) -> EquipUi:
     )
 
 
-_HEXA_STAT_BLOCKS: tuple[tuple[str, str], ...] = (
-    ("character_hexa_stat_core", "characterHexaStatCore"),
-    ("character_hexa_stat_core_2", "characterHexaStatCore2"),
-    ("character_hexa_stat_core_3", "characterHexaStatCore3"),
-)
-
-
-def _hexa_stat_slot_sort_key(s: HexaStatSlotUi) -> tuple[int, str]:
-    sid = s.slotId or ""
-    try:
-        return (int(sid), sid)
-    except ValueError:
-        return (10**9, sid)
-
-
 def _norm_skill_key(s: str) -> str:
     t = unicodedata.normalize("NFKC", (s or "").strip())
     return re.sub(r"\s+", " ", t).strip()
@@ -771,65 +751,6 @@ def _skills_from_character_skill_payload(payload: dict) -> list[dict[str, Any]]:
         return []
     out = [_slim_skill_api_row(r) for r in raw if isinstance(r, dict)]
     return [r for r in out if _norm_skill_key(str(r.get("skillName") or ""))]
-
-
-def _hexa_stat_slot_empty(slot: HexaStatSlotUi) -> bool:
-    if (slot.main.level or 0) > 0:
-        return False
-    if _norm_skill_key(slot.main.name):
-        return False
-    for s in slot.subStats:
-        if (s.level or 0) > 0:
-            return False
-        if _norm_skill_key(s.name):
-            return False
-    return True
-
-
-def _hexa_stat_slot_from_row(row: dict) -> HexaStatSlotUi:
-    main = HexaStatLineUi(
-        name=_norm_skill_key(str(_nget(row, "main_stat_name", "mainStatName") or "")),
-        level=_parse_int(_nget(row, "main_stat_level", "mainStatLevel")) or 0,
-    )
-    subs = [
-        HexaStatLineUi(
-            name=_norm_skill_key(
-                str(_nget(row, "sub_stat_name_1", "subStatName1") or "")
-            ),
-            level=_parse_int(_nget(row, "sub_stat_level_1", "subStatLevel1")) or 0,
-        ),
-        HexaStatLineUi(
-            name=_norm_skill_key(
-                str(_nget(row, "sub_stat_name_2", "subStatName2") or "")
-            ),
-            level=_parse_int(_nget(row, "sub_stat_level_2", "subStatLevel2")) or 0,
-        ),
-    ]
-    sid = _nget(row, "slot_id", "slotId")
-    slot_s = str(sid).strip() if sid is not None else ""
-    return HexaStatSlotUi(
-        slotId=slot_s if slot_s else None,
-        main=main,
-        subStats=subs,
-    )
-
-
-def _hexa_stat_columns(payload: dict) -> list[HexaStatColumnUi]:
-    cols: list[HexaStatColumnUi] = []
-    for tier, (sk, ck) in enumerate(_HEXA_STAT_BLOCKS, start=1):
-        block = _nget(payload, sk, ck)
-        slots: list[HexaStatSlotUi] = []
-        if isinstance(block, list):
-            for item in block:
-                if isinstance(item, dict):
-                    sl = _hexa_stat_slot_from_row(item)
-                    if not _hexa_stat_slot_empty(sl):
-                        slots.append(sl)
-        slots.sort(key=_hexa_stat_slot_sort_key)
-        cols.append(
-            HexaStatColumnUi(tier=cast(Literal[1, 2, 3], tier), slots=slots)
-        )
-    return cols
 
 
 def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
@@ -906,7 +827,6 @@ async def get_character_info(nickname: str):
             batch3 = await asyncio.gather(
                 fetch_character_skill(client, ocid, yesterday, "6"),
                 fetch_character_skill(client, ocid, yesterday, "5"),
-                fetch_character_hexamatrix_stat(client, ocid, yesterday),
                 return_exceptions=True,
             )
             results = list(batch1) + [
@@ -953,7 +873,6 @@ async def get_character_info(nickname: str):
     set_effect_data = pick(10)
     skill6_raw = pick(11)
     skill5_raw = pick(12)
-    hexa_stat_raw = pick(13)
     job_sixth = [
         JobSkillUi.model_validate(x)
         for x in _skills_from_character_skill_payload(skill6_raw)
@@ -962,7 +881,6 @@ async def get_character_info(nickname: str):
         JobSkillUi.model_validate(x)
         for x in _skills_from_character_skill_payload(skill5_raw)
     ]
-    hexa_stat_cols = _hexa_stat_columns(hexa_stat_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
     preset_equip_lists = [
@@ -1030,6 +948,5 @@ async def get_character_info(nickname: str):
         equipsPreset3=ep2,
         jobSkillSixth=job_sixth,
         jobSkillFifth=job_fifth,
-        hexaStatColumns=hexa_stat_cols,
         union=union_detail,
     )

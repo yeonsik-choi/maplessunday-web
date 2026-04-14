@@ -171,28 +171,6 @@ class JobSkillUi(BaseModel):
     skillEffect: str = ""
 
 
-class HexaStatLineUi(BaseModel):
-    model_config = _MODEL
-
-    name: str = ""
-    level: int = 0
-
-
-class HexaStatSlotUi(BaseModel):
-    model_config = _MODEL
-
-    slotId: str | None = None
-    main: HexaStatLineUi = Field(default_factory=HexaStatLineUi)
-    subStats: list[HexaStatLineUi] = Field(default_factory=list)
-
-
-class HexaStatColumnUi(BaseModel):
-    model_config = _MODEL
-
-    tier: Literal[1, 2, 3]
-    slots: list[HexaStatSlotUi] = Field(default_factory=list)
-
-
 class CharacterResponse(BaseModel):
     model_config = _MODEL
 
@@ -223,6 +201,4 @@ class CharacterResponse(BaseModel):
 
     jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
     jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
-    hexaStatColumns: list[HexaStatColumnUi] = Field(default_factory=list)
-
     union: UnionResponse | None = None
