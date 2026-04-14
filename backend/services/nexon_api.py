@@ -78,6 +78,41 @@ async def _fetch_ocid_date(
     )
 
 
+async def fetch_character_skill(
+    client: httpx.AsyncClient, ocid: str, date: str, character_skill_grade: str
+) -> dict:
+    return await _get_json(
+        client,
+        "character/skill",
+        {
+            "ocid": ocid,
+            "date": date,
+            "character_skill_grade": character_skill_grade,
+        },
+        f"캐릭터 스킬 조회 실패 (grade={character_skill_grade})",
+    )
+
+
+async def fetch_character_hexamatrix(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client, "character/hexamatrix", ocid, date, "HEXA 매트릭스 조회 실패"
+    )
+
+
+async def fetch_character_hexamatrix_stat(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client,
+        "character/hexamatrix-stat",
+        ocid,
+        date,
+        "HEXA 스탯 조회 실패",
+    )
+
+
 async def fetch_character_basic(
     client: httpx.AsyncClient, ocid: str, date: str
 ) -> dict:
