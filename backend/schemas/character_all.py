@@ -193,15 +193,6 @@ class HexaStatColumnUi(BaseModel):
     slots: list[HexaStatSlotUi] = Field(default_factory=list)
 
 
-class HexaResourceTotalsUi(BaseModel):
-    model_config = _MODEL
-
-    solErdaSpent: int = 0
-    solErdaMax: int = 0
-    fragmentSpent: int = 0
-    fragmentMax: int = 0
-
-
 class CharacterResponse(BaseModel):
     model_config = _MODEL
 
@@ -235,7 +226,3 @@ class CharacterResponse(BaseModel):
     jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
     jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
     hexaStatColumns: list[HexaStatColumnUi] = Field(default_factory=list)
-    hexaResourceTotals: HexaResourceTotalsUi = Field(
-        default_factory=HexaResourceTotalsUi
-    )
-    hexaStatMaxGrade: int | None = None

@@ -10,7 +10,6 @@ KST = ZoneInfo("Asia/Seoul")
 
 
 def _raise_for_failed_nexon(response: httpx.Response, error_detail: str) -> None:
-    """넥슨 비정상 응답. 429는 그대로 올려 rate limit과 구분, 나머지는 502."""
     code = response.status_code
     body_preview = ((response.text or "").strip())[:300]
     detail = f"{error_detail} (nexon HTTP {code})"
@@ -42,7 +41,6 @@ async def _get_json(
 
 
 def get_yesterday() -> str:
-    """캐릭터 API `date`(YYYY-MM-DD, KST). 전일 스냅샷은 익일 02:00(KST)부터라, 그 전 시각이면 이틀 전 날짜."""
     now = datetime.now(KST)
     days_ago = 2 if now.hour < 2 else 1
     target = now.date() - timedelta(days=days_ago)
@@ -90,14 +88,6 @@ async def fetch_character_skill(
             "character_skill_grade": character_skill_grade,
         },
         f"캐릭터 스킬 조회 실패 (grade={character_skill_grade})",
-    )
-
-
-async def fetch_character_hexamatrix(
-    client: httpx.AsyncClient, ocid: str, date: str
-) -> dict:
-    return await _fetch_ocid_date(
-        client, "character/hexamatrix", ocid, date, "HEXA 매트릭스 조회 실패"
     )
 
 

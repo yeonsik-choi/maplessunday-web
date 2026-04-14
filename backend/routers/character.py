@@ -14,7 +14,6 @@ from schemas.character_all import (
     CharacterResponse,
     EquipTotalOptionUi,
     EquipUi,
-    HexaResourceTotalsUi,
     HexaStatColumnUi,
     HexaStatLineUi,
     HexaStatSlotUi,
@@ -32,7 +31,6 @@ from schemas.character_all import (
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
-    fetch_character_hexamatrix,
     fetch_character_hexamatrix_stat,
     fetch_character_popularity,
     fetch_character_skill,
@@ -69,7 +67,6 @@ _NEXON_FETCH_NAMES = (
     "skill_grade_6",
     "skill_grade_5",
     "hexamatrix_stat",
-    "hexamatrix",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -700,120 +697,11 @@ def _to_equip(item: dict) -> EquipUi:
     )
 
 
-_STEP_HEX_SKILL: tuple[tuple[int, int], ...] = (
-    (0, 50),
-    (1, 30),
-    (1, 35),
-    (1, 40),
-    (2, 45),
-    (2, 50),
-    (2, 55),
-    (3, 60),
-    (3, 65),
-    (10, 200),
-    (3, 80),
-    (3, 90),
-    (4, 100),
-    (4, 110),
-    (4, 120),
-    (5, 130),
-    (5, 140),
-    (5, 150),
-    (6, 160),
-    (12, 350),
-    (5, 170),
-    (5, 180),
-    (5, 190),
-    (6, 200),
-    (6, 210),
-    (6, 220),
-    (6, 230),
-    (6, 240),
-    (7, 250),
-    (17, 450),
-)
-_STEP_HEX_MASTERY: tuple[tuple[int, int], ...] = (
-    (0, 75),
-    (1, 15),
-    (1, 18),
-    (1, 20),
-    (1, 23),
-    (1, 25),
-    (1, 28),
-    (2, 30),
-    (2, 33),
-    (5, 100),
-    (2, 40),
-    (2, 45),
-    (2, 50),
-    (2, 55),
-    (2, 60),
-    (2, 65),
-    (2, 70),
-    (2, 75),
-    (3, 80),
-    (8, 175),
-    (3, 85),
-    (3, 90),
-    (3, 95),
-    (3, 100),
-    (3, 105),
-    (3, 110),
-    (3, 115),
-    (3, 120),
-    (4, 125),
-    (10, 225),
-)
-_STEP_HEX_ENHANCE: tuple[tuple[int, int], ...] = (
-    (5, 75),
-    (1, 23),
-    (1, 27),
-    (1, 30),
-    (2, 34),
-    (2, 38),
-    (2, 42),
-    (3, 45),
-    (3, 49),
-    (8, 150),
-    (3, 60),
-    (3, 68),
-    (3, 75),
-    (3, 83),
-    (3, 90),
-    (3, 98),
-    (3, 105),
-    (3, 113),
-    (4, 120),
-    (12, 263),
-    (4, 128),
-    (4, 135),
-    (4, 143),
-    (4, 150),
-    (4, 158),
-    (4, 165),
-    (5, 173),
-    (5, 180),
-    (6, 188),
-    (15, 375),
-)
-
 _HEXA_STAT_BLOCKS: tuple[tuple[str, str], ...] = (
     ("character_hexa_stat_core", "characterHexaStatCore"),
     ("character_hexa_stat_core_2", "characterHexaStatCore2"),
     ("character_hexa_stat_core_3", "characterHexaStatCore3"),
 )
-
-
-def _hexa_internal_kind(core_type: str | None) -> str:
-    raw = (core_type or "").strip()
-    t = raw.lower()
-    if "공용" in raw or "common" in t:
-        return "common"
-    if "마스터리" in raw or "mastery" in t:
-        return "mastery"
-    if "강화" in raw or "enhance" in t:
-        return "enhance"
-    return "skill"
 
 
 def _hexa_stat_slot_sort_key(s: HexaStatSlotUi) -> tuple[int, str]:
@@ -822,33 +710,6 @@ def _hexa_stat_slot_sort_key(s: HexaStatSlotUi) -> tuple[int, str]:
         return (int(sid), sid)
     except ValueError:
         return (10**9, sid)
-
-
-def _hexa_step_table(internal_kind: str) -> tuple[tuple[int, int], ...]:
-    if internal_kind == "mastery":
-        return _STEP_HEX_MASTERY
-    if internal_kind == "enhance":
-        return _STEP_HEX_ENHANCE
-    return _STEP_HEX_SKILL
-
-
-def _hexa_spent_to_level(level: int, steps: tuple[tuple[int, int], ...]) -> tuple[int, int]:
-    if level <= 0:
-        return (0, 0)
-    n = min(level, len(steps))
-    return (
-        sum(steps[i][0] for i in range(n)),
-        sum(steps[i][1] for i in range(n)),
-    )
-
-
-def _hexa_core_resources_row(
-    internal_kind: str, level: int
-) -> tuple[int, int, int, int]:
-    steps = _hexa_step_table(internal_kind)
-    se, sf = _hexa_spent_to_level(level, steps)
-    me, mf = _hexa_spent_to_level(30, steps)
-    return (se, sf, me, mf)
 
 
 def _norm_skill_key(s: str) -> str:
@@ -873,35 +734,8 @@ def _absolute_icon_url(url: str) -> str:
     return u
 
 
-def _hexa_resource_totals(hexa_payload: dict) -> HexaResourceTotalsUi:
-    raw = _nget(
-        hexa_payload, "character_hexa_core_equipment", "characterHexaCoreEquipment"
-    )
-    if not isinstance(raw, list):
-        return HexaResourceTotalsUi()
-    te = tf = tme = tmf = 0
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        ctype = _nget(item, "hexa_core_type", "hexaCoreType")
-        ik = _hexa_internal_kind(str(ctype).strip() if ctype else None)
-        lvl = _parse_int(_nget(item, "hexa_core_level", "hexaCoreLevel")) or 0
-        se, sf, me, mf = _hexa_core_resources_row(ik, lvl)
-        te += se
-        tf += sf
-        tme += me
-        tmf += mf
-    return HexaResourceTotalsUi(
-        solErdaSpent=te,
-        solErdaMax=tme,
-        fragmentSpent=tf,
-        fragmentMax=tmf,
-    )
-
-
 def _slim_skill_api_row(row: dict) -> dict[str, Any]:
-    raw_name = str(_nget(row, "skill_name", "skillName") or "")
-    name = _norm_skill_key(raw_name)
+    name = _norm_skill_key(str(_nget(row, "skill_name", "skillName") or ""))
     desc = _squish_display_text(
         str(_nget(row, "skill_description", "skillDescription") or "")
     )
@@ -919,35 +753,12 @@ def _slim_skill_api_row(row: dict) -> dict[str, Any]:
     }
 
 
-def _dedupe_skills_by_name(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    best: dict[str, dict[str, Any]] = {}
-    order: list[str] = []
-    for r in rows:
-        k = _norm_skill_key(str(r.get("skillName") or ""))
-        if not k:
-            continue
-        if k not in best:
-            order.append(k)
-            best[k] = r
-            continue
-        prev = best[k]
-        pl = int(prev.get("skillLevel") or 0)
-        nl = int(r.get("skillLevel") or 0)
-        if nl > pl or (
-            nl == pl
-            and len(str(r.get("skillEffect") or "")) > len(str(prev.get("skillEffect") or ""))
-        ):
-            best[k] = r
-    return [best[k] for k in order]
-
-
 def _skills_from_character_skill_payload(payload: dict) -> list[dict[str, Any]]:
     raw = _nget(payload, "character_skill", "characterSkill")
     if not isinstance(raw, list):
         return []
     out = [_slim_skill_api_row(r) for r in raw if isinstance(r, dict)]
-    out = [r for r in out if _norm_skill_key(str(r.get("skillName") or ""))]
-    return _dedupe_skills_by_name(out)
+    return [r for r in out if _norm_skill_key(str(r.get("skillName") or ""))]
 
 
 def _hexa_stat_slot_empty(slot: HexaStatSlotUi) -> bool:
@@ -991,10 +802,10 @@ def _hexa_stat_slot_from_row(row: dict) -> HexaStatSlotUi:
     )
 
 
-def _hexa_stat_columns(hexa_stat_payload: dict) -> list[HexaStatColumnUi]:
+def _hexa_stat_columns(payload: dict) -> list[HexaStatColumnUi]:
     cols: list[HexaStatColumnUi] = []
     for tier, (sk, ck) in enumerate(_HEXA_STAT_BLOCKS, start=1):
-        block = _nget(hexa_stat_payload, sk, ck)
+        block = _nget(payload, sk, ck)
         slots: list[HexaStatSlotUi] = []
         if isinstance(block, list):
             for item in block:
@@ -1009,49 +820,6 @@ def _hexa_stat_columns(hexa_stat_payload: dict) -> list[HexaStatColumnUi]:
     return cols
 
 
-def _hexa_stat_max_grade(hexa_stat_payload: dict) -> int | None:
-    m = 0
-    found = False
-    for sk, ck in _HEXA_STAT_BLOCKS:
-        block = _nget(hexa_stat_payload, sk, ck)
-        if not isinstance(block, list):
-            continue
-        for item in block:
-            if not isinstance(item, dict):
-                continue
-            g = _parse_int(_nget(item, "stat_grade", "statGrade"))
-            if g is not None:
-                found = True
-                m = max(m, g)
-    return m if found else None
-
-
-def _assemble_job_hexa_ui(
-    skill5_raw: dict,
-    skill6_raw: dict,
-    hexa_matrix_raw: dict,
-    hexa_stat_raw: dict,
-) -> tuple[
-    list[JobSkillUi],
-    list[JobSkillUi],
-    list[HexaStatColumnUi],
-    HexaResourceTotalsUi,
-    int | None,
-]:
-    sixth = _skills_from_character_skill_payload(skill6_raw)
-    fifth = _skills_from_character_skill_payload(skill5_raw)
-    sixth.sort(key=lambda s: str(s.get("skillName") or ""))
-    fifth.sort(
-        key=lambda s: (-(int(s.get("skillLevel") or 0)), str(s.get("skillName") or ""))
-    )
-    sixth_ui = [JobSkillUi.model_validate(x) for x in sixth]
-    fifth_ui = [JobSkillUi.model_validate(x) for x in fifth]
-    totals = _hexa_resource_totals(hexa_matrix_raw)
-    columns = _hexa_stat_columns(hexa_stat_raw)
-    max_grade = _hexa_stat_max_grade(hexa_stat_raw)
-    return sixth_ui, fifth_ui, columns, totals, max_grade
-
-
 def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
     raw = _nget(payload, "set_effect", "setEffect")
     if not isinstance(raw, list):
@@ -1064,10 +832,8 @@ def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
         if not isinstance(info, list) or not info:
             continue
         name = str(_nget(s, "set_name", "setName") or "")
-        cnt_raw = _nget(s, "total_set_count", "totalSetCount")
-        count = _parse_int(cnt_raw) if cnt_raw is not None else 0
-        if count is None:
-            count = 0
+        c = _parse_int(_nget(s, "total_set_count", "totalSetCount"))
+        count = 0 if c is None else c
         effects: list[str] = []
         for row in info:
             if not isinstance(row, dict):
@@ -1129,7 +895,6 @@ async def get_character_info(nickname: str):
                 fetch_character_skill(client, ocid, yesterday, "6"),
                 fetch_character_skill(client, ocid, yesterday, "5"),
                 fetch_character_hexamatrix_stat(client, ocid, yesterday),
-                fetch_character_hexamatrix(client, ocid, yesterday),
                 return_exceptions=True,
             )
             results = list(batch1) + [
@@ -1185,16 +950,15 @@ async def get_character_info(nickname: str):
     skill6_raw = pick(11)
     skill5_raw = pick(12)
     hexa_stat_raw = pick(13)
-    hexa_matrix_raw = pick(14)
-    (
-        job_sixth,
-        job_fifth,
-        hexa_stat_cols,
-        hexa_totals,
-        hexa_max_grade,
-    ) = _assemble_job_hexa_ui(
-        skill5_raw, skill6_raw, hexa_matrix_raw, hexa_stat_raw
-    )
+    job_sixth = [
+        JobSkillUi.model_validate(x)
+        for x in _skills_from_character_skill_payload(skill6_raw)
+    ]
+    job_fifth = [
+        JobSkillUi.model_validate(x)
+        for x in _skills_from_character_skill_payload(skill5_raw)
+    ]
+    hexa_stat_cols = _hexa_stat_columns(hexa_stat_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
     preset_equip_lists = [
@@ -1264,6 +1028,4 @@ async def get_character_info(nickname: str):
         jobSkillSixth=job_sixth,
         jobSkillFifth=job_fifth,
         hexaStatColumns=hexa_stat_cols,
-        hexaResourceTotals=hexa_totals,
-        hexaStatMaxGrade=hexa_max_grade,
     )
