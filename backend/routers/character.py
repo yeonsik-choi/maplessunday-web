@@ -7,7 +7,8 @@ from typing import Any, Literal, cast
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from core.config import NEXON_API_KEY, NEXON_HTTP_TRUST_ENV
+from core.config import NEXON_HTTP_TRUST_ENV
+from core.nexon import raise_nexon_request_error, require_nexon_api_key
 from schemas.character_all import (
     AbilityPresetUi,
     ArcaneRow,
@@ -308,11 +309,6 @@ def _rank_int(payload: dict) -> int | None:
         return int(str(raw).replace(",", "").strip())
     except (TypeError, ValueError):
         return None
-
-
-def _require_key():
-    if not NEXON_API_KEY:
-        raise HTTPException(status_code=500, detail="API 키가 설정되지 않았습니다.")
 
 
 _UNION_BLOCK_COORD_KEYS = frozenset(
@@ -875,7 +871,7 @@ def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
     },
 )
 async def get_character_info(nickname: str):
-    _require_key()
+    require_nexon_api_key()
     yesterday = get_yesterday()
 
     try:
@@ -921,15 +917,7 @@ async def get_character_info(nickname: str):
     except HTTPException:
         raise
     except httpx.RequestError as e:
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                "넥슨 오픈 API에 연결하지 못했습니다. "
-                f"({type(e).__name__}: {e}) "
-                "VPN·회사 프록시·HTTP_PROXY 환경이면 비활성화 후 다시 시도하거나, "
-                "방화벽에서 open.api.nexon.com 허용을 확인하세요."
-            ),
-        ) from e
+        raise_nexon_request_error(e)
 
     for i, r in enumerate(results):
         if isinstance(r, Exception):
