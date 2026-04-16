@@ -171,24 +171,20 @@ class JobSkillUi(BaseModel):
     skillEffect: str = ""
 
 
-class HexaStatCoreUi(BaseModel):
-    """HEXA 스탯 코어 1개(메인 + 서브2) — 넥슨 character/hexamatrix-stat 코어 단위."""
-
+class HexaStatLineUi(BaseModel):
     model_config = _MODEL
 
-    slotId: str = ""
-    mainStatName: str = ""
-    subStatName1: str = ""
-    subStatName2: str = ""
-    mainStatLevel: int = 0
-    subStatLevel1: int = 0
-    subStatLevel2: int = 0
-    statGrade: int = 0
+    level: int = 0
+    name: str = ""
+
+
+class HexaStatCoreUi(BaseModel):
+    model_config = _MODEL
+
+    rows: list[HexaStatLineUi] = Field(default_factory=list)
 
 
 class HexaMatrixStatUi(BaseModel):
-    """장착 코어 + 프리셋 코어(HEXA 스탯 I / II / III)."""
-
     model_config = _MODEL
 
     characterHexaStatCore: list[HexaStatCoreUi] = Field(default_factory=list)

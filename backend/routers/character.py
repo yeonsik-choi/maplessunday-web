@@ -16,6 +16,7 @@ from schemas.character_all import (
     EquipUi,
     HexaMatrixStatUi,
     HexaStatCoreUi,
+    HexaStatLineUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -30,10 +31,12 @@ from schemas.character_all import (
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
+    fetch_character_hexamatrix,
     fetch_character_hexamatrix_stat,
     fetch_character_popularity,
     fetch_character_skill,
     fetch_character_stat,
+    fetch_character_vmatrix,
     fetch_item_equipment,
     fetch_overall_ranking,
     fetch_set_effect,
@@ -68,6 +71,8 @@ _NEXON_FETCH_NAMES = (
     "skill_grade_6",
     "skill_grade_5",
     "hexamatrix_stat",
+    "hexamatrix",
+    "vmatrix",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -750,20 +755,30 @@ def _slim_skill_api_row(row: dict) -> dict[str, Any]:
     }
 
 
+def _hexa_stat_line(name_raw: Any, level_raw: Any) -> HexaStatLineUi | None:
+    name = str(name_raw or "").strip()
+    if not name:
+        return None
+    return HexaStatLineUi(level=_parse_int(level_raw) or 0, name=name)
+
+
 def _hexa_stat_core_from_row(row: dict) -> HexaStatCoreUi:
-    return HexaStatCoreUi(
-        slotId=str(_nget(row, "slot_id", "slotId") or ""),
-        mainStatName=str(_nget(row, "main_stat_name", "mainStatName") or ""),
-        subStatName1=str(_nget(row, "sub_stat_name_1", "subStatName1") or ""),
-        subStatName2=str(_nget(row, "sub_stat_name_2", "subStatName2") or ""),
-        mainStatLevel=_parse_int(_nget(row, "main_stat_level", "mainStatLevel"))
-        or 0,
-        subStatLevel1=_parse_int(_nget(row, "sub_stat_level_1", "subStatLevel1"))
-        or 0,
-        subStatLevel2=_parse_int(_nget(row, "sub_stat_level_2", "subStatLevel2"))
-        or 0,
-        statGrade=_parse_int(_nget(row, "stat_grade", "statGrade")) or 0,
-    )
+    rows: list[HexaStatLineUi] = []
+    for nm, lv in (
+        (_nget(row, "main_stat_name", "mainStatName"), _nget(row, "main_stat_level", "mainStatLevel")),
+        (
+            _nget(row, "sub_stat_name_1", "subStatName1"),
+            _nget(row, "sub_stat_level_1", "subStatLevel1"),
+        ),
+        (
+            _nget(row, "sub_stat_name_2", "subStatName2"),
+            _nget(row, "sub_stat_level_2", "subStatLevel2"),
+        ),
+    ):
+        line = _hexa_stat_line(nm, lv)
+        if line is not None:
+            rows.append(line)
+    return HexaStatCoreUi(rows=rows)
 
 
 def _hexa_stat_core_list(raw: Any) -> list[HexaStatCoreUi]:
@@ -805,6 +820,135 @@ def _skills_from_character_skill_payload(payload: dict) -> list[dict[str, Any]]:
         return []
     out = [_slim_skill_api_row(r) for r in raw if isinstance(r, dict)]
     return [r for r in out if _norm_skill_key(str(r.get("skillName") or ""))]
+
+
+def _collapse_type_ws(s: str) -> str:
+    return re.sub(r"\s+", "", (s or "").strip())
+
+
+def _sixth_job_core_type_rank(core_type: str) -> int:
+    t = _collapse_type_ws(core_type)
+    if not t:
+        return 99
+    if "마스터리" in t:
+        return 1
+    if "공용" in t:
+        return 3
+    if "강화" in t:
+        return 2
+    if "스킬" in t:
+        return 0
+    return 99
+
+
+def _fifth_job_core_type_rank(core_type: str) -> int:
+    t = _collapse_type_ws(core_type)
+    if not t:
+        return 99
+    if "특수" in t:
+        return 2
+    if "강화" in t:
+        return 0
+    if "스킬" in t:
+        return 1
+    return 99
+
+
+def _split_hexa_core_display_names(hexa_core_name: str) -> list[str]:
+    s = (hexa_core_name or "").strip()
+    if not s:
+        return []
+    parts = re.split(r"[/|·,+]+", s)
+    out = [p.strip() for p in parts if p.strip()]
+    return out if out else [s]
+
+
+def _register_skill_rank(
+    m: dict[str, int], names: list[str], rank: int
+) -> None:
+    for raw in names:
+        k = _norm_skill_key(raw)
+        if not k:
+            continue
+        prev = m.get(k, 99)
+        if rank < prev:
+            m[k] = rank
+
+
+def _hexamatrix_skill_rank_map(hexa_payload: dict) -> dict[str, int]:
+    raw = _nget(
+        hexa_payload,
+        "character_hexa_core_equipment",
+        "characterHexaCoreEquipment",
+    )
+    if not isinstance(raw, list):
+        return {}
+    out: dict[str, int] = {}
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "")
+        rank = _sixth_job_core_type_rank(typ)
+        if rank >= 99:
+            continue
+        core_nm = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
+        _register_skill_rank(out, _split_hexa_core_display_names(core_nm), rank)
+    return out
+
+
+def _vmatrix_skill_rank_map(vm_payload: dict) -> dict[str, int]:
+    raw = _nget(
+        vm_payload,
+        "character_v_core_equipment",
+        "characterVCoreEquipment",
+    )
+    if not isinstance(raw, list):
+        return {}
+    out: dict[str, int] = {}
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        typ = str(_nget(row, "v_core_type", "vCoreType") or "")
+        rank = _fifth_job_core_type_rank(typ)
+        if rank >= 99:
+            continue
+        names = [
+            t
+            for sk in (
+                _nget(row, "v_core_skill_1", "vCoreSkill1"),
+                _nget(row, "v_core_skill_2", "vCoreSkill2"),
+                _nget(row, "v_core_skill_3", "vCoreSkill3"),
+            )
+            if sk is not None and (t := str(sk).strip())
+        ]
+        _register_skill_rank(out, names, rank)
+    return out
+
+
+def _skill_row_rank(skill: dict[str, Any], name_rank: dict[str, int]) -> int:
+    name = _norm_skill_key(str(skill.get("skillName") or ""))
+    if not name:
+        return 99
+    if name in name_rank:
+        return name_rank[name]
+    fuzzy = (
+        r
+        for k, r in name_rank.items()
+        if k and (k in name or name in k)
+    )
+    return min(fuzzy, default=99)
+
+
+def _sort_skill_rows_by_core_rank(
+    skills: list[dict[str, Any]], name_rank: dict[str, int]
+) -> list[dict[str, Any]]:
+    if not name_rank or not skills:
+        return skills
+    indexed = list(enumerate(skills))
+    indexed.sort(
+        key=lambda ij: (_skill_row_rank(ij[1], name_rank), ij[0]),
+    )
+    return [s for _, s in indexed]
 
 
 def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
@@ -884,11 +1028,17 @@ async def get_character_info(nickname: str):
                 fetch_character_hexamatrix_stat(client, ocid, yesterday),
                 return_exceptions=True,
             )
+            await asyncio.sleep(_NEXON_SLEEP_SEC)
+            batch4 = await asyncio.gather(
+                fetch_character_hexamatrix(client, ocid, yesterday),
+                fetch_character_vmatrix(client, ocid, yesterday),
+                return_exceptions=True,
+            )
             results = list(batch1) + [
                 *batch2a[:3],
                 *batch2b,
                 *batch2a[3:],
-            ] + list(batch3)
+            ] + list(batch3) + list(batch4)
     except HTTPException:
         raise
     except httpx.RequestError as e:
@@ -929,14 +1079,18 @@ async def get_character_info(nickname: str):
     skill6_raw = pick(11)
     skill5_raw = pick(12)
     hexa_raw = pick(13)
-    job_sixth = [
-        JobSkillUi.model_validate(x)
-        for x in _skills_from_character_skill_payload(skill6_raw)
-    ]
-    job_fifth = [
-        JobSkillUi.model_validate(x)
-        for x in _skills_from_character_skill_payload(skill5_raw)
-    ]
+    hexa_matrix_raw = pick(14)
+    vmatrix_raw = pick(15)
+    sixth_rows = _skills_from_character_skill_payload(skill6_raw)
+    sixth_rows = _sort_skill_rows_by_core_rank(
+        sixth_rows, _hexamatrix_skill_rank_map(hexa_matrix_raw)
+    )
+    fifth_rows = _skills_from_character_skill_payload(skill5_raw)
+    fifth_rows = _sort_skill_rows_by_core_rank(
+        fifth_rows, _vmatrix_skill_rank_map(vmatrix_raw)
+    )
+    job_sixth = [JobSkillUi.model_validate(x) for x in sixth_rows]
+    job_fifth = [JobSkillUi.model_validate(x) for x in fifth_rows]
     hexa_matrix_stat = _hexa_matrix_stat_ui(hexa_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))

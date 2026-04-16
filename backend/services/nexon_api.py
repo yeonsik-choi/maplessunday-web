@@ -134,6 +134,30 @@ async def fetch_character_hexamatrix_stat(
     )
 
 
+async def fetch_character_hexamatrix(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client,
+        "character/hexamatrix",
+        ocid,
+        date,
+        "캐릭터 HEXA 매트릭스 조회 실패",
+    )
+
+
+async def fetch_character_vmatrix(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client,
+        "character/vmatrix",
+        ocid,
+        date,
+        "캐릭터 V매트릭스 조회 실패",
+    )
+
+
 async def fetch_character_ability(
     client: httpx.AsyncClient, ocid: str, date: str
 ) -> dict:
