@@ -14,6 +14,8 @@ from schemas.character_all import (
     CharacterResponse,
     EquipTotalOptionUi,
     EquipUi,
+    HexaMatrixStatUi,
+    HexaStatCoreUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -28,6 +30,7 @@ from schemas.character_all import (
 from services.nexon_api import (
     fetch_character_ability,
     fetch_character_basic,
+    fetch_character_hexamatrix_stat,
     fetch_character_popularity,
     fetch_character_skill,
     fetch_character_stat,
@@ -64,6 +67,7 @@ _NEXON_FETCH_NAMES = (
     "set_effect",
     "skill_grade_6",
     "skill_grade_5",
+    "hexamatrix_stat",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -746,6 +750,55 @@ def _slim_skill_api_row(row: dict) -> dict[str, Any]:
     }
 
 
+def _hexa_stat_core_from_row(row: dict) -> HexaStatCoreUi:
+    return HexaStatCoreUi(
+        slotId=str(_nget(row, "slot_id", "slotId") or ""),
+        mainStatName=str(_nget(row, "main_stat_name", "mainStatName") or ""),
+        subStatName1=str(_nget(row, "sub_stat_name_1", "subStatName1") or ""),
+        subStatName2=str(_nget(row, "sub_stat_name_2", "subStatName2") or ""),
+        mainStatLevel=_parse_int(_nget(row, "main_stat_level", "mainStatLevel"))
+        or 0,
+        subStatLevel1=_parse_int(_nget(row, "sub_stat_level_1", "subStatLevel1"))
+        or 0,
+        subStatLevel2=_parse_int(_nget(row, "sub_stat_level_2", "subStatLevel2"))
+        or 0,
+        statGrade=_parse_int(_nget(row, "stat_grade", "statGrade")) or 0,
+    )
+
+
+def _hexa_stat_core_list(raw: Any) -> list[HexaStatCoreUi]:
+    if not isinstance(raw, list):
+        return []
+    out: list[HexaStatCoreUi] = []
+    for r in raw:
+        if isinstance(r, dict):
+            out.append(_hexa_stat_core_from_row(r))
+    return out
+
+
+def _hexa_matrix_stat_ui(payload: dict) -> HexaMatrixStatUi:
+    return HexaMatrixStatUi(
+        characterHexaStatCore=_hexa_stat_core_list(
+            _nget(payload, "character_hexa_stat_core", "characterHexaStatCore")
+        ),
+        characterHexaStatCore2=_hexa_stat_core_list(
+            _nget(payload, "character_hexa_stat_core_2", "characterHexaStatCore2")
+        ),
+        characterHexaStatCore3=_hexa_stat_core_list(
+            _nget(payload, "character_hexa_stat_core_3", "characterHexaStatCore3")
+        ),
+        presetHexaStatCore=_hexa_stat_core_list(
+            _nget(payload, "preset_hexa_stat_core", "presetHexaStatCore")
+        ),
+        presetHexaStatCore2=_hexa_stat_core_list(
+            _nget(payload, "preset_hexa_stat_core_2", "presetHexaStatCore2")
+        ),
+        presetHexaStatCore3=_hexa_stat_core_list(
+            _nget(payload, "preset_hexa_stat_core_3", "presetHexaStatCore3")
+        ),
+    )
+
+
 def _skills_from_character_skill_payload(payload: dict) -> list[dict[str, Any]]:
     raw = _nget(payload, "character_skill", "characterSkill")
     if not isinstance(raw, list):
@@ -828,6 +881,7 @@ async def get_character_info(nickname: str):
             batch3 = await asyncio.gather(
                 fetch_character_skill(client, ocid, yesterday, "6"),
                 fetch_character_skill(client, ocid, yesterday, "5"),
+                fetch_character_hexamatrix_stat(client, ocid, yesterday),
                 return_exceptions=True,
             )
             results = list(batch1) + [
@@ -874,6 +928,7 @@ async def get_character_info(nickname: str):
     set_effect_data = pick(10)
     skill6_raw = pick(11)
     skill5_raw = pick(12)
+    hexa_raw = pick(13)
     job_sixth = [
         JobSkillUi.model_validate(x)
         for x in _skills_from_character_skill_payload(skill6_raw)
@@ -882,6 +937,7 @@ async def get_character_info(nickname: str):
         JobSkillUi.model_validate(x)
         for x in _skills_from_character_skill_payload(skill5_raw)
     ]
+    hexa_matrix_stat = _hexa_matrix_stat_ui(hexa_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
     preset_equip_lists = [
@@ -947,6 +1003,7 @@ async def get_character_info(nickname: str):
         equipsPreset1=ep0,
         equipsPreset2=ep1,
         equipsPreset3=ep2,
+        hexaMatrixStat=hexa_matrix_stat,
         jobSkillSixth=job_sixth,
         jobSkillFifth=job_fifth,
         union=union_detail,

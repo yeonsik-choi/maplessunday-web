@@ -171,6 +171,34 @@ class JobSkillUi(BaseModel):
     skillEffect: str = ""
 
 
+class HexaStatCoreUi(BaseModel):
+    """HEXA 스탯 코어 1개(메인 + 서브2) — 넥슨 character/hexamatrix-stat 코어 단위."""
+
+    model_config = _MODEL
+
+    slotId: str = ""
+    mainStatName: str = ""
+    subStatName1: str = ""
+    subStatName2: str = ""
+    mainStatLevel: int = 0
+    subStatLevel1: int = 0
+    subStatLevel2: int = 0
+    statGrade: int = 0
+
+
+class HexaMatrixStatUi(BaseModel):
+    """장착 코어 + 프리셋 코어(HEXA 스탯 I / II / III)."""
+
+    model_config = _MODEL
+
+    characterHexaStatCore: list[HexaStatCoreUi] = Field(default_factory=list)
+    characterHexaStatCore2: list[HexaStatCoreUi] = Field(default_factory=list)
+    characterHexaStatCore3: list[HexaStatCoreUi] = Field(default_factory=list)
+    presetHexaStatCore: list[HexaStatCoreUi] = Field(default_factory=list)
+    presetHexaStatCore2: list[HexaStatCoreUi] = Field(default_factory=list)
+    presetHexaStatCore3: list[HexaStatCoreUi] = Field(default_factory=list)
+
+
 class CharacterResponse(BaseModel):
     model_config = _MODEL
 
@@ -199,6 +227,7 @@ class CharacterResponse(BaseModel):
     equipsPreset2: list[EquipUi] = Field(default_factory=list)
     equipsPreset3: list[EquipUi] = Field(default_factory=list)
 
+    hexaMatrixStat: HexaMatrixStatUi = Field(default_factory=HexaMatrixStatUi)
     jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
     jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
     union: UnionResponse | None = None
