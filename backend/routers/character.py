@@ -20,7 +20,8 @@ from schemas.character_all import (
     HexaLinkedSkillEntryUi,
     JobSkillFifthBundle,
     JobSkillSixthBundle,
-    JobSkillSixthCommonCoreUi,
+    JobSkillSixthCategorySectionUi,
+    JobSkillSixthMatrixCoreUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -821,31 +822,6 @@ def _collapse_type_ws(s: str) -> str:
     return re.sub(r"\s+", "", (s or "").strip())
 
 
-def _sixth_job_core_type_rank(core_type: str) -> int:
-    t = _collapse_type_ws(core_type)
-    if not t:
-        return 99
-    if "마스터리" in t:
-        return 1
-    if "공용" in t:
-        return 3
-    if "강화" in t:
-        return 2
-    if "스킬" in t:
-        return 0
-    return 99
-
-
-def _sixth_non_common_process_order(rank: int) -> int:
-    if rank == 1:
-        return 0
-    if rank == 0:
-        return 1
-    if rank == 2:
-        return 2
-    return 99
-
-
 def _fifth_job_core_type_rank(core_type: str) -> int:
     raw = (core_type or "").strip()
     if not raw:
@@ -859,15 +835,6 @@ def _fifth_job_core_type_rank(core_type: str) -> int:
     if "스킬" in raw or "skill" in tl:
         return 1
     return 99
-
-
-def _split_hexa_core_display_names(hexa_core_name: str) -> list[str]:
-    s = (hexa_core_name or "").strip()
-    if not s:
-        return []
-    parts = re.split(r"[/|·,+、／]+", s)
-    out = [p.strip() for p in parts if p.strip()]
-    return out if out else [s]
 
 
 def _slot_sort_key(row: dict) -> tuple[int, int | str]:
@@ -961,405 +928,76 @@ def _hexa_linked_skill_specs(row: dict) -> list[tuple[str, str]]:
     return out
 
 
-def _sixth_skill_id_register(out: dict[str, JobSkillUi], key: str, ui: JobSkillUi) -> None:
-    if not key:
-        return
-    if key not in out:
-        out[key] = ui
-    try:
-        alt = str(int(key.strip()))
-    except (TypeError, ValueError):
-        return
-    if alt not in out:
-        out[alt] = ui
-
-
-def _sixth_skill_id_to_ui(skill6_raw: dict) -> dict[str, JobSkillUi]:
-    raw = _nget(skill6_raw, "character_skill", "characterSkill")
-    if not isinstance(raw, list):
-        return {}
-    out: dict[str, JobSkillUi] = {}
-    for row in raw:
-        if not isinstance(row, dict):
-            continue
-        hid = _nget(row, "hexa_skill_id", "hexaSkillId", "skill_id", "skillId")
-        if hid is None or not str(hid).strip():
-            continue
-        slim = _slim_skill_api_row(row)
-        if not _norm_skill_key(str(slim.get("skillName") or "")):
-            continue
-        key = str(hid).strip()
-        ui = JobSkillUi.model_validate(slim)
-        _sixth_skill_id_register(out, key, ui)
-    return out
-
-
-def _sixth_skill_ui_by_hexa_id(lid: str, id_to: dict[str, JobSkillUi]) -> JobSkillUi | None:
-    sk = id_to.get(lid)
-    if sk is not None:
-        return sk
-    try:
-        return id_to.get(str(int(lid.strip())))
-    except (TypeError, ValueError):
-        return None
-
-
-def _resolve_sixth_skill_for_link(
-    lid: str,
-    hint: str,
-    id_to: dict[str, JobSkillUi],
-    name_to: dict[str, JobSkillUi],
-) -> JobSkillUi | None:
-    sk = _sixth_skill_ui_by_hexa_id(lid, id_to)
-    if sk is not None:
-        return sk
-    nk_lid = _norm_skill_key(lid)
-    if nk_lid and nk_lid in name_to:
-        return name_to[nk_lid]
-    if hint:
-        return name_to.get(_norm_skill_key(hint))
-    return None
-
-
-def _fill_sixth_common_null_links_from_core_name(
-    cname: str,
-    linked: list[HexaLinkedSkillEntryUi],
-    name_to: dict[str, JobSkillUi],
-) -> list[HexaLinkedSkillEntryUi]:
-    if not linked:
-        return linked
-    parts = _split_hexa_core_display_names(cname)
-    used: set[str] = set()
-    for le in linked:
-        if le.skill:
-            used.add(_norm_skill_key(le.skill.skillName))
-    out: list[HexaLinkedSkillEntryUi] = []
-    pi = 0
-    for le in linked:
-        if le.skill is not None:
-            out.append(le)
-            continue
-        sk: JobSkillUi | None = None
-        while pi < len(parts):
-            pk = _norm_skill_key(parts[pi])
-            pi += 1
-            if not pk or pk in used:
-                continue
-            if pk in name_to:
-                sk = name_to[pk]
-                used.add(pk)
-                break
-        if sk is None:
-            for p in parts:
-                pk = _norm_skill_key(p)
-                if not pk or pk in used:
-                    continue
-                if pk in name_to:
-                    sk = name_to[pk]
-                    used.add(pk)
-                    break
-        if sk is not None:
-            out.append(HexaLinkedSkillEntryUi(hexaSkillId=le.hexaSkillId, skill=sk))
-        else:
-            out.append(le)
-    return out
-
-
-def _order_skills_like_reference(
-    skills: list[JobSkillUi], reference: list[JobSkillUi]
-) -> list[JobSkillUi]:
-    pos = {_norm_skill_key(s.skillName): i for i, s in enumerate(reference)}
-    return sorted(
-        skills,
-        key=lambda s: pos.get(_norm_skill_key(s.skillName), 10**9),
-    )
-
-
-def _sixth_reserved_from_common(
-    common: list[JobSkillSixthCommonCoreUi],
-) -> set[str]:
-    reserved: set[str] = set()
-    for cc in common:
-        for part in _split_hexa_core_display_names(cc.hexaCoreName):
-            k = _norm_skill_key(part)
-            if k:
-                reserved.add(k)
-        fk = _norm_skill_key(cc.hexaCoreName)
-        if fk:
-            reserved.add(fk)
-        for le in cc.linkedSkills:
-            if le.skill:
-                reserved.add(_norm_skill_key(le.skill.skillName))
-    return reserved
-
-
-def _sixth_common_equipment_reserved_skill_keys(
-    common_rows: list[tuple[int, dict]],
-    id_to: dict[str, JobSkillUi],
-    name_to: dict[str, JobSkillUi],
-) -> set[str]:
-    keys: set[str] = set()
-    for _, row in common_rows:
-        cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
-        for part in _split_hexa_core_display_names(cname):
-            k = _norm_skill_key(part)
-            if k:
-                keys.add(k)
-        fk = _norm_skill_key(cname)
-        if fk:
-            keys.add(fk)
-        for lid, hint in _hexa_linked_skill_specs(row):
-            if hint:
-                keys.add(_norm_skill_key(hint))
-            sk = _resolve_sixth_skill_for_link(lid, hint, id_to, name_to)
-            if sk:
-                keys.add(_norm_skill_key(sk.skillName))
-    return keys
-
-
-def _sixth_skill_name_keys_for_common_linked_ids(
-    skill6_raw: dict,
-    common_rows: list[tuple[int, dict]],
-    name_to: dict[str, JobSkillUi],
-) -> set[str]:
-    out: set[str] = set()
-    linked_ids: set[str] = set()
-    for _, row in common_rows:
-        for lid, hint in _hexa_linked_skill_specs(row):
-            if lid:
-                linked_ids.add(lid)
-                try:
-                    linked_ids.add(str(int(lid.strip())))
-                except (TypeError, ValueError):
-                    pass
-            nk = _norm_skill_key(lid)
-            if nk and nk in name_to:
-                out.add(nk)
-            if hint:
-                hk = _norm_skill_key(hint)
-                if hk and hk in name_to:
-                    out.add(hk)
-    if not linked_ids:
-        return out
-    raw = _nget(skill6_raw, "character_skill", "characterSkill")
-    if not isinstance(raw, list):
-        return out
-    for row in raw:
-        if not isinstance(row, dict):
-            continue
-        hid = _nget(row, "hexa_skill_id", "hexaSkillId", "skill_id", "skillId")
-        if hid is None or not str(hid).strip():
-            continue
-        keys = {str(hid).strip()}
-        try:
-            keys.add(str(int(str(hid).strip())))
-        except (TypeError, ValueError):
-            pass
-        if not linked_ids.intersection(keys):
-            continue
-        slim = _slim_skill_api_row(row)
-        nk = _norm_skill_key(str(slim.get("skillName") or ""))
-        if nk:
-            out.add(nk)
-    return out
-
-
-def _backfill_sixth_common_nulls_from_skill_cores(
-    cc: JobSkillSixthCommonCoreUi,
-    row: dict,
-    sc: list[JobSkillUi],
-    id_to: dict[str, JobSkillUi],
-) -> JobSkillSixthCommonCoreUi:
-    specs = _hexa_linked_skill_specs(row)
-    sc_by = {_norm_skill_key(s.skillName): s for s in sc}
-    parts = _split_hexa_core_display_names(cc.hexaCoreName)
-    used: set[str] = set()
-    for le in cc.linkedSkills:
-        if le.skill:
-            used.add(_norm_skill_key(le.skill.skillName))
-    new_linked: list[HexaLinkedSkillEntryUi] = []
-    part_i = 0
-    for i, le in enumerate(cc.linkedSkills):
-        if le.skill is not None:
-            new_linked.append(le)
-            continue
-        lid = le.hexaSkillId
-        hint = specs[i][1] if i < len(specs) else ""
-        sk: JobSkillUi | None = None
-        ref = _sixth_skill_ui_by_hexa_id(lid, id_to)
-        if ref is not None:
-            sk = sc_by.get(_norm_skill_key(ref.skillName))
-        if sk is None and hint:
-            sk = sc_by.get(_norm_skill_key(hint))
-        if sk is None:
-            sk = sc_by.get(_norm_skill_key(lid))
-        if sk is None:
-            while part_i < len(parts):
-                pk = _norm_skill_key(parts[part_i])
-                part_i += 1
-                if not pk or pk in used:
-                    continue
-                cand = sc_by.get(pk)
-                if cand is not None:
-                    sk = cand
-                    used.add(pk)
-                    break
-            if sk is None:
-                for p in parts:
-                    pk = _norm_skill_key(p)
-                    if not pk or pk in used:
-                        continue
-                    cand = sc_by.get(pk)
-                    if cand is not None:
-                        sk = cand
-                        used.add(pk)
-                        break
-        if sk is not None:
-            used.add(_norm_skill_key(sk.skillName))
-        new_linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
-    return JobSkillSixthCommonCoreUi(
-        hexaCoreName=cc.hexaCoreName,
-        hexaCoreLevel=cc.hexaCoreLevel,
-        linkedSkills=new_linked,
-    )
-
-
 def _is_hexa_stat_skill_name(skill_name: str) -> bool:
     n = (skill_name or "").strip()
     return "HEXA 스탯" in n or _norm_skill_key(n) == _norm_skill_key("HEXA 스탯")
 
 
+def _skill6_by_skill_name(skill6_raw: dict) -> dict[str, JobSkillUi]:
+    rows = _skills_from_character_skill_payload(skill6_raw)
+    out: dict[str, JobSkillUi] = {}
+    for slim in rows:
+        nk = _norm_skill_key(str(slim.get("skillName") or ""))
+        if nk:
+            out[nk] = JobSkillUi.model_validate(slim)
+    return out
+
+
+def _sixth_linked_skill_ui(
+    lid: str, hint: str, skill_by_name: dict[str, JobSkillUi]
+) -> JobSkillUi | None:
+    nk = _norm_skill_key(lid)
+    if nk and nk in skill_by_name:
+        return skill_by_name[nk]
+    if hint:
+        return skill_by_name.get(_norm_skill_key(hint))
+    return None
+
+
 def _job_skill_sixth_bundle(
     skill6_raw: dict, hexa_matrix_raw: dict
 ) -> JobSkillSixthBundle:
-    slim_rows = _skills_from_character_skill_payload(skill6_raw)
-    all_list = [JobSkillUi.model_validate(x) for x in slim_rows]
-    name_to = {_norm_skill_key(s.skillName): s for s in all_list}
-    remaining: set[str] = set(name_to.keys())
-    id_to = _sixth_skill_id_to_ui(skill6_raw)
-
+    skill_by_name = _skill6_by_skill_name(skill6_raw)
     raw_eq = _nget(
         hexa_matrix_raw,
         "character_hexa_core_equipment",
         "characterHexaCoreEquipment",
     )
     rows_all = [r for r in raw_eq if isinstance(r, dict)] if isinstance(raw_eq, list) else []
-    common_rows: list[tuple[int, dict]] = []
-    other_rows: list[tuple[int, dict]] = []
-    for i, row in enumerate(rows_all):
-        rank = _sixth_job_core_type_rank(str(_nget(row, "hexa_core_type", "hexaCoreType") or ""))
-        if rank >= 99:
-            continue
-        if rank == 3:
-            common_rows.append((i, row))
-        else:
-            other_rows.append((i, row))
+    rows_sorted = sorted(rows_all, key=_slot_sort_key)
+    type_order: list[str] = []
+    buckets: dict[str, list[JobSkillSixthMatrixCoreUi]] = {}
 
-    common_rows.sort(key=lambda ir: (_slot_sort_key(ir[1]), ir[0]))
-    other_rows.sort(
-        key=lambda ir: (
-            _sixth_non_common_process_order(
-                _sixth_job_core_type_rank(
-                    str(_nget(ir[1], "hexa_core_type", "hexaCoreType") or "")
-                )
-            ),
-            _slot_sort_key(ir[1]),
-            ir[0],
-        ),
-    )
-
-    hexa_stat_ui: JobSkillUi | None = None
-    for sk in all_list:
-        if _is_hexa_stat_skill_name(sk.skillName):
-            hexa_stat_ui = sk
-            remaining.discard(_norm_skill_key(sk.skillName))
-            break
-
-    reserved = _sixth_common_equipment_reserved_skill_keys(common_rows, id_to, name_to)
-    reserved |= _sixth_skill_name_keys_for_common_linked_ids(
-        skill6_raw, common_rows, name_to
-    )
-
-    common_pair: list[tuple[dict, JobSkillSixthCommonCoreUi]] = []
-    for _, row in common_rows:
+    for row in rows_sorted:
+        typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "").strip() or "기타"
         cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
         clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
         linked: list[HexaLinkedSkillEntryUi] = []
         for lid, hint in _hexa_linked_skill_specs(row):
-            sk = _resolve_sixth_skill_for_link(lid, hint, id_to, name_to)
+            sk = _sixth_linked_skill_ui(lid, hint, skill_by_name)
             linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
-        linked = _fill_sixth_common_null_links_from_core_name(cname, linked, name_to)
-        common_pair.append(
-            (
-                row,
-                JobSkillSixthCommonCoreUi(
-                    hexaCoreName=cname,
-                    hexaCoreLevel=clvl,
-                    linkedSkills=linked,
-                ),
-            )
+        core = JobSkillSixthMatrixCoreUi(
+            hexaCoreName=cname,
+            hexaCoreLevel=clvl,
+            linkedSkills=linked,
         )
+        if typ not in buckets:
+            buckets[typ] = []
+            type_order.append(typ)
+        buckets[typ].append(core)
 
-    sc: list[JobSkillUi] = []
-    mc: list[JobSkillUi] = []
-    bc: list[JobSkillUi] = []
-
-    for _, row in other_rows:
-        rank = _sixth_job_core_type_rank(str(_nget(row, "hexa_core_type", "hexaCoreType") or ""))
-        cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
-        taken: list[JobSkillUi] = []
-        seen_taken: set[str] = set()
-        for part in _split_hexa_core_display_names(cname):
-            nk = _norm_skill_key(part)
-            if nk in reserved:
-                continue
-            if nk in remaining and nk in name_to and nk not in seen_taken:
-                taken.append(name_to[nk])
-                seen_taken.add(nk)
-                remaining.discard(nk)
-        fk = _norm_skill_key(cname)
-        if fk not in reserved and fk in remaining and fk in name_to and fk not in seen_taken:
-            taken.append(name_to[fk])
-            seen_taken.add(fk)
-            remaining.discard(fk)
-
-        taken = _order_skills_like_reference(taken, all_list)
-        if rank == 0:
-            sc.extend(taken)
-        elif rank == 1:
-            mc.extend(taken)
-        else:
-            bc.extend(taken)
-
-    for sk in all_list:
-        nk = _norm_skill_key(sk.skillName)
-        if nk not in remaining:
-            continue
-        if nk in reserved:
-            remaining.discard(nk)
-            continue
-        if "강화" in (sk.skillName or ""):
-            bc.append(sk)
-        else:
-            sc.append(sk)
-        remaining.discard(nk)
-
-    common_filled = [
-        _backfill_sixth_common_nulls_from_skill_cores(cc, row, sc, id_to)
-        for row, cc in common_pair
+    sections = [
+        JobSkillSixthCategorySectionUi(hexaCoreType=t, cores=buckets[t])
+        for t in type_order
     ]
-    reserved |= _sixth_reserved_from_common(common_filled)
 
-    def _strip_reserved(lst: list[JobSkillUi]) -> list[JobSkillUi]:
-        return [s for s in lst if _norm_skill_key(s.skillName) not in reserved]
+    hexa_stat_ui: JobSkillUi | None = None
+    for sk in skill_by_name.values():
+        if _is_hexa_stat_skill_name(sk.skillName):
+            hexa_stat_ui = sk
+            break
 
-    return JobSkillSixthBundle(
-        masteryCores=_strip_reserved(mc),
-        skillCores=_strip_reserved(sc),
-        commonCores=common_filled,
-        boostCores=_strip_reserved(bc),
-        hexaStatSkill=hexa_stat_ui,
-    )
+    return JobSkillSixthBundle(sections=sections, hexaStatSkill=hexa_stat_ui)
 
 
 def _fifth_skill_bucket_by_name(vm_payload: dict) -> dict[str, int]:

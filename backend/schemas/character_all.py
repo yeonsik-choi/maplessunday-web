@@ -178,7 +178,7 @@ class HexaLinkedSkillEntryUi(BaseModel):
     skill: JobSkillUi | None = None
 
 
-class JobSkillSixthCommonCoreUi(BaseModel):
+class JobSkillSixthMatrixCoreUi(BaseModel):
     model_config = _MODEL
 
     hexaCoreName: str = ""
@@ -186,13 +186,17 @@ class JobSkillSixthCommonCoreUi(BaseModel):
     linkedSkills: list[HexaLinkedSkillEntryUi] = Field(default_factory=list)
 
 
+class JobSkillSixthCategorySectionUi(BaseModel):
+    model_config = _MODEL
+
+    hexaCoreType: str = ""
+    cores: list[JobSkillSixthMatrixCoreUi] = Field(default_factory=list)
+
+
 class JobSkillSixthBundle(BaseModel):
     model_config = _MODEL
 
-    masteryCores: list[JobSkillUi] = Field(default_factory=list)
-    skillCores: list[JobSkillUi] = Field(default_factory=list)
-    commonCores: list[JobSkillSixthCommonCoreUi] = Field(default_factory=list)
-    boostCores: list[JobSkillUi] = Field(default_factory=list)
+    sections: list[JobSkillSixthCategorySectionUi] = Field(default_factory=list)
     hexaStatSkill: JobSkillUi | None = None
 
 
