@@ -17,11 +17,9 @@ from schemas.character_all import (
     HexaMatrixStatUi,
     HexaStatCoreUi,
     HexaStatLineUi,
-    HexaLinkedSkillEntryUi,
     JobSkillFifthBundle,
     JobSkillSixthBundle,
     JobSkillSixthCategorySectionUi,
-    JobSkillSixthMatrixCoreUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -982,31 +980,24 @@ def _job_skill_sixth_bundle(
     )
     rows_all = [r for r in raw_eq if isinstance(r, dict)] if isinstance(raw_eq, list) else []
     rows_sorted = sorted(rows_all, key=_slot_sort_key)
-    buckets: dict[str, list[JobSkillSixthMatrixCoreUi]] = {}
+    buckets: dict[str, list[JobSkillUi]] = {}
 
     for row in rows_sorted:
         typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "").strip() or "기타"
-        cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
-        clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
-        linked: list[HexaLinkedSkillEntryUi] = []
-        for lid, hint in _hexa_linked_skill_specs(row):
-            sk = _sixth_linked_skill_ui(lid, hint, skill_by_name)
-            linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
-        core = JobSkillSixthMatrixCoreUi(
-            hexaCoreName=cname,
-            hexaCoreLevel=clvl,
-            linkedSkills=linked,
-        )
         if typ not in buckets:
             buckets[typ] = []
-        buckets[typ].append(core)
+        for lid, hint in _hexa_linked_skill_specs(row):
+            sk = _sixth_linked_skill_ui(lid, hint, skill_by_name)
+            if sk is None or _is_hexa_stat_skill_name(sk.skillName):
+                continue
+            buckets[typ].append(sk)
 
     section_types = sorted(
         buckets.keys(),
         key=lambda k: (_sixth_hexa_core_section_sort_order(k), k),
     )
     sections = [
-        JobSkillSixthCategorySectionUi(hexaCoreType=t, cores=buckets[t])
+        JobSkillSixthCategorySectionUi(hexaCoreType=t, skills=buckets[t])
         for t in section_types
     ]
 
