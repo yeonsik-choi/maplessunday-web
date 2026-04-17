@@ -171,6 +171,38 @@ class JobSkillUi(BaseModel):
     skillEffect: str = ""
 
 
+class HexaLinkedSkillEntryUi(BaseModel):
+    model_config = _MODEL
+
+    hexaSkillId: str = ""
+    skill: JobSkillUi | None = None
+
+
+class JobSkillSixthCommonCoreUi(BaseModel):
+    model_config = _MODEL
+
+    hexaCoreName: str = ""
+    hexaCoreLevel: int = 0
+    linkedSkills: list[HexaLinkedSkillEntryUi] = Field(default_factory=list)
+
+
+class JobSkillSixthBundle(BaseModel):
+    model_config = _MODEL
+
+    skillCores: list[JobSkillUi] = Field(default_factory=list)
+    masteryCores: list[JobSkillUi] = Field(default_factory=list)
+    boostCores: list[JobSkillUi] = Field(default_factory=list)
+    commonCores: list[JobSkillSixthCommonCoreUi] = Field(default_factory=list)
+
+
+class JobSkillFifthBundle(BaseModel):
+    model_config = _MODEL
+
+    boostCores: list[JobSkillUi] = Field(default_factory=list)
+    skillCores: list[JobSkillUi] = Field(default_factory=list)
+    specialCores: list[JobSkillUi] = Field(default_factory=list)
+
+
 class HexaStatLineUi(BaseModel):
     model_config = _MODEL
 
@@ -190,9 +222,6 @@ class HexaMatrixStatUi(BaseModel):
     characterHexaStatCore: list[HexaStatCoreUi] = Field(default_factory=list)
     characterHexaStatCore2: list[HexaStatCoreUi] = Field(default_factory=list)
     characterHexaStatCore3: list[HexaStatCoreUi] = Field(default_factory=list)
-    presetHexaStatCore: list[HexaStatCoreUi] = Field(default_factory=list)
-    presetHexaStatCore2: list[HexaStatCoreUi] = Field(default_factory=list)
-    presetHexaStatCore3: list[HexaStatCoreUi] = Field(default_factory=list)
 
 
 class CharacterResponse(BaseModel):
@@ -224,6 +253,6 @@ class CharacterResponse(BaseModel):
     equipsPreset3: list[EquipUi] = Field(default_factory=list)
 
     hexaMatrixStat: HexaMatrixStatUi = Field(default_factory=HexaMatrixStatUi)
-    jobSkillSixth: list[JobSkillUi] = Field(default_factory=list)
-    jobSkillFifth: list[JobSkillUi] = Field(default_factory=list)
+    jobSkillSixth: JobSkillSixthBundle = Field(default_factory=JobSkillSixthBundle)
+    jobSkillFifth: JobSkillFifthBundle = Field(default_factory=JobSkillFifthBundle)
     union: UnionResponse | None = None

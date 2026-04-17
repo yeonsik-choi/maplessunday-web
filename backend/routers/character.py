@@ -17,6 +17,10 @@ from schemas.character_all import (
     HexaMatrixStatUi,
     HexaStatCoreUi,
     HexaStatLineUi,
+    HexaLinkedSkillEntryUi,
+    JobSkillFifthBundle,
+    JobSkillSixthBundle,
+    JobSkillSixthCommonCoreUi,
     JobSkillUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
@@ -802,15 +806,6 @@ def _hexa_matrix_stat_ui(payload: dict) -> HexaMatrixStatUi:
         characterHexaStatCore3=_hexa_stat_core_list(
             _nget(payload, "character_hexa_stat_core_3", "characterHexaStatCore3")
         ),
-        presetHexaStatCore=_hexa_stat_core_list(
-            _nget(payload, "preset_hexa_stat_core", "presetHexaStatCore")
-        ),
-        presetHexaStatCore2=_hexa_stat_core_list(
-            _nget(payload, "preset_hexa_stat_core_2", "presetHexaStatCore2")
-        ),
-        presetHexaStatCore3=_hexa_stat_core_list(
-            _nget(payload, "preset_hexa_stat_core_3", "presetHexaStatCore3")
-        ),
     )
 
 
@@ -863,40 +858,7 @@ def _split_hexa_core_display_names(hexa_core_name: str) -> list[str]:
     return out if out else [s]
 
 
-def _register_skill_rank(
-    m: dict[str, int], names: list[str], rank: int
-) -> None:
-    for raw in names:
-        k = _norm_skill_key(raw)
-        if not k:
-            continue
-        prev = m.get(k, 99)
-        if rank < prev:
-            m[k] = rank
-
-
-def _hexamatrix_skill_rank_map(hexa_payload: dict) -> dict[str, int]:
-    raw = _nget(
-        hexa_payload,
-        "character_hexa_core_equipment",
-        "characterHexaCoreEquipment",
-    )
-    if not isinstance(raw, list):
-        return {}
-    out: dict[str, int] = {}
-    for row in raw:
-        if not isinstance(row, dict):
-            continue
-        typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "")
-        rank = _sixth_job_core_type_rank(typ)
-        if rank >= 99:
-            continue
-        core_nm = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
-        _register_skill_rank(out, _split_hexa_core_display_names(core_nm), rank)
-    return out
-
-
-def _vmatrix_slot_sort_key(row: dict) -> tuple[int, int | str]:
+def _slot_sort_key(row: dict) -> tuple[int, int | str]:
     sid_raw = _nget(row, "slot_id", "slotId")
     try:
         return (0, int(str(sid_raw).strip()))
@@ -920,7 +882,7 @@ def _fifth_skill_order_from_vmatrix(vm_payload: dict) -> dict[str, int]:
         rnk = _fifth_job_core_type_rank(typ)
         if rnk >= 99:
             continue
-        ranked.append((rnk, _vmatrix_slot_sort_key(row), row))
+        ranked.append((rnk, _slot_sort_key(row), row))
     ranked.sort(key=lambda t: (t[0], t[1]))
     out: dict[str, int] = {}
     pos = 0
@@ -960,30 +922,208 @@ def _sort_fifth_skill_rows_by_vmatrix(
     return [s for _, s in indexed]
 
 
-def _skill_row_rank(skill: dict[str, Any], name_rank: dict[str, int]) -> int:
-    name = _norm_skill_key(str(skill.get("skillName") or ""))
-    if not name:
-        return 99
-    if name in name_rank:
-        return name_rank[name]
-    fuzzy = (
-        r
-        for k, r in name_rank.items()
-        if k and (k in name or name in k)
+def _sorted_hexa_matrix_equipment(hexa_payload: dict) -> list[dict]:
+    raw = _nget(
+        hexa_payload,
+        "character_hexa_core_equipment",
+        "characterHexaCoreEquipment",
     )
-    return min(fuzzy, default=99)
-
-
-def _sort_skill_rows_by_core_rank(
-    skills: list[dict[str, Any]], name_rank: dict[str, int]
-) -> list[dict[str, Any]]:
-    if not name_rank or not skills:
-        return skills
-    indexed = list(enumerate(skills))
+    if not isinstance(raw, list):
+        return []
+    indexed = [
+        (i, r) for i, r in enumerate(raw) if isinstance(r, dict)
+    ]
     indexed.sort(
-        key=lambda ij: (_skill_row_rank(ij[1], name_rank), ij[0]),
+        key=lambda ir: (
+            _sixth_job_core_type_rank(
+                str(_nget(ir[1], "hexa_core_type", "hexaCoreType") or "")
+            ),
+            _slot_sort_key(ir[1]),
+            ir[0],
+        ),
     )
-    return [s for _, s in indexed]
+    return [r for _, r in indexed]
+
+
+def _hexa_linked_skill_ids(row: dict) -> list[str]:
+    raw = _nget(row, "linked_skill", "linkedSkill")
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        hid = _nget(item, "hexa_skill_id", "hexaSkillId")
+        if hid is not None and str(hid).strip():
+            out.append(str(hid).strip())
+    return out
+
+
+def _sixth_skill_id_to_ui(skill6_raw: dict) -> dict[str, JobSkillUi]:
+    raw = _nget(skill6_raw, "character_skill", "characterSkill")
+    if not isinstance(raw, list):
+        return {}
+    out: dict[str, JobSkillUi] = {}
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        hid = _nget(row, "hexa_skill_id", "hexaSkillId", "skill_id", "skillId")
+        if hid is None or not str(hid).strip():
+            continue
+        slim = _slim_skill_api_row(row)
+        if not _norm_skill_key(str(slim.get("skillName") or "")):
+            continue
+        key = str(hid).strip()
+        if key not in out:
+            out[key] = JobSkillUi.model_validate(slim)
+    return out
+
+
+def _order_skills_like_reference(
+    skills: list[JobSkillUi], reference: list[JobSkillUi]
+) -> list[JobSkillUi]:
+    pos = {_norm_skill_key(s.skillName): i for i, s in enumerate(reference)}
+    return sorted(
+        skills,
+        key=lambda s: pos.get(_norm_skill_key(s.skillName), 10**9),
+    )
+
+
+def _job_skill_sixth_bundle(
+    skill6_raw: dict, hexa_matrix_raw: dict
+) -> JobSkillSixthBundle:
+    slim_rows = _skills_from_character_skill_payload(skill6_raw)
+    all_list = [JobSkillUi.model_validate(x) for x in slim_rows]
+    name_to = {_norm_skill_key(s.skillName): s for s in all_list}
+    remaining: set[str] = set(name_to.keys())
+    id_to = _sixth_skill_id_to_ui(skill6_raw)
+
+    sc: list[JobSkillUi] = []
+    mc: list[JobSkillUi] = []
+    bc: list[JobSkillUi] = []
+    common: list[JobSkillSixthCommonCoreUi] = []
+
+    for row in _sorted_hexa_matrix_equipment(hexa_matrix_raw):
+        typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "")
+        rank = _sixth_job_core_type_rank(typ)
+        if rank >= 99:
+            continue
+        cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
+        clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
+
+        if rank == 3:
+            linked: list[HexaLinkedSkillEntryUi] = []
+            for lid in _hexa_linked_skill_ids(row):
+                sk = id_to.get(lid)
+                linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
+                if sk:
+                    remaining.discard(_norm_skill_key(sk.skillName))
+            common.append(
+                JobSkillSixthCommonCoreUi(
+                    hexaCoreName=cname,
+                    hexaCoreLevel=clvl,
+                    linkedSkills=linked,
+                )
+            )
+            continue
+
+        taken: list[JobSkillUi] = []
+        seen_taken: set[str] = set()
+        for part in _split_hexa_core_display_names(cname):
+            nk = _norm_skill_key(part)
+            if nk in remaining and nk in name_to and nk not in seen_taken:
+                taken.append(name_to[nk])
+                seen_taken.add(nk)
+                remaining.discard(nk)
+        fk = _norm_skill_key(cname)
+        if fk in remaining and fk in name_to and fk not in seen_taken:
+            taken.append(name_to[fk])
+            seen_taken.add(fk)
+            remaining.discard(fk)
+
+        taken = _order_skills_like_reference(taken, all_list)
+        if rank == 0:
+            sc.extend(taken)
+        elif rank == 1:
+            mc.extend(taken)
+        else:
+            bc.extend(taken)
+
+    for sk in all_list:
+        nk = _norm_skill_key(sk.skillName)
+        if nk not in remaining:
+            continue
+        if "강화" in (sk.skillName or ""):
+            bc.append(sk)
+        else:
+            sc.append(sk)
+        remaining.discard(nk)
+
+    return JobSkillSixthBundle(
+        skillCores=sc,
+        masteryCores=mc,
+        boostCores=bc,
+        commonCores=common,
+    )
+
+
+def _fifth_skill_bucket_by_name(vm_payload: dict) -> dict[str, int]:
+    raw = _nget(
+        vm_payload,
+        "character_v_core_equipment",
+        "characterVCoreEquipment",
+    )
+    if not isinstance(raw, list):
+        return {}
+    ranked: list[tuple[int, tuple[int, int | str], dict]] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        typ = str(_nget(row, "v_core_type", "vCoreType") or "")
+        rnk = _fifth_job_core_type_rank(typ)
+        if rnk >= 99:
+            continue
+        ranked.append((rnk, _slot_sort_key(row), row))
+    ranked.sort(key=lambda t: (t[0], t[1]))
+    name_to_bucket: dict[str, int] = {}
+    for _, __, row in ranked:
+        rnk = _fifth_job_core_type_rank(str(_nget(row, "v_core_type", "vCoreType") or ""))
+        if rnk >= 99:
+            continue
+        for sk in (
+            _nget(row, "v_core_skill_1", "vCoreSkill1"),
+            _nget(row, "v_core_skill_2", "vCoreSkill2"),
+            _nget(row, "v_core_skill_3", "vCoreSkill3"),
+        ):
+            if sk is None:
+                continue
+            t = str(sk).strip()
+            if not t:
+                continue
+            k = _norm_skill_key(t)
+            if k and k not in name_to_bucket:
+                name_to_bucket[k] = rnk
+    return name_to_bucket
+
+
+def _job_skill_fifth_bundle(skill5_raw: dict, vmatrix_raw: dict) -> JobSkillFifthBundle:
+    rows = _skills_from_character_skill_payload(skill5_raw)
+    rows = _sort_fifth_skill_rows_by_vmatrix(rows, vmatrix_raw)
+    bucket = _fifth_skill_bucket_by_name(vmatrix_raw)
+    boost: list[JobSkillUi] = []
+    skl: list[JobSkillUi] = []
+    spc: list[JobSkillUi] = []
+    for slim in rows:
+        nk = _norm_skill_key(str(slim.get("skillName") or ""))
+        b = bucket.get(nk, 2)
+        ui = JobSkillUi.model_validate(slim)
+        if b == 0:
+            boost.append(ui)
+        elif b == 1:
+            skl.append(ui)
+        else:
+            spc.append(ui)
+    return JobSkillFifthBundle(boostCores=boost, skillCores=skl, specialCores=spc)
 
 
 def _set_effects_ui(payload: dict) -> list[SetEffectUi]:
@@ -1116,14 +1256,8 @@ async def get_character_info(nickname: str):
     hexa_raw = pick(13)
     hexa_matrix_raw = pick(14)
     vmatrix_raw = pick(15)
-    sixth_rows = _skills_from_character_skill_payload(skill6_raw)
-    sixth_rows = _sort_skill_rows_by_core_rank(
-        sixth_rows, _hexamatrix_skill_rank_map(hexa_matrix_raw)
-    )
-    fifth_rows = _skills_from_character_skill_payload(skill5_raw)
-    fifth_rows = _sort_fifth_skill_rows_by_vmatrix(fifth_rows, vmatrix_raw)
-    job_sixth = [JobSkillUi.model_validate(x) for x in sixth_rows]
-    job_fifth = [JobSkillUi.model_validate(x) for x in fifth_rows]
+    job_sixth = _job_skill_sixth_bundle(skill6_raw, hexa_matrix_raw)
+    job_fifth = _job_skill_fifth_bundle(skill5_raw, vmatrix_raw)
     hexa_matrix_stat = _hexa_matrix_stat_ui(hexa_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
