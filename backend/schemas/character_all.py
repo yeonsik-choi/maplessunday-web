@@ -189,10 +189,11 @@ class JobSkillSixthCommonCoreUi(BaseModel):
 class JobSkillSixthBundle(BaseModel):
     model_config = _MODEL
 
-    skillCores: list[JobSkillUi] = Field(default_factory=list)
     masteryCores: list[JobSkillUi] = Field(default_factory=list)
-    boostCores: list[JobSkillUi] = Field(default_factory=list)
+    skillCores: list[JobSkillUi] = Field(default_factory=list)
     commonCores: list[JobSkillSixthCommonCoreUi] = Field(default_factory=list)
+    boostCores: list[JobSkillUi] = Field(default_factory=list)
+    hexaStatSkill: JobSkillUi | None = None
 
 
 class JobSkillFifthBundle(BaseModel):

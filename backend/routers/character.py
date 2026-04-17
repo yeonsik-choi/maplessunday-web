@@ -836,16 +836,29 @@ def _sixth_job_core_type_rank(core_type: str) -> int:
     return 99
 
 
-def _fifth_job_core_type_rank(core_type: str) -> int:
-    t = _collapse_type_ws(core_type)
-    if not t:
-        return 99
-    if "강화" in t:
+def _sixth_non_common_process_order(rank: int) -> int:
+    """마스터리 → 스킬 → 강화 순으로 장비 행 처리 (공용은 별도)."""
+    if rank == 1:
         return 0
-    if "스킬" in t:
+    if rank == 0:
         return 1
-    if "특수" in t:
+    if rank == 2:
         return 2
+    return 99
+
+
+def _fifth_job_core_type_rank(core_type: str) -> int:
+    raw = (core_type or "").strip()
+    if not raw:
+        return 99
+    t = _collapse_type_ws(raw)
+    tl = raw.lower()
+    if "특수" in raw or "special" in tl:
+        return 2
+    if "강화" in raw or "강화" in t or "enhance" in tl or "boost" in tl:
+        return 0
+    if "스킬" in raw or "skill" in tl:
+        return 1
     return 99
 
 
@@ -922,29 +935,6 @@ def _sort_fifth_skill_rows_by_vmatrix(
     return [s for _, s in indexed]
 
 
-def _sorted_hexa_matrix_equipment(hexa_payload: dict) -> list[dict]:
-    raw = _nget(
-        hexa_payload,
-        "character_hexa_core_equipment",
-        "characterHexaCoreEquipment",
-    )
-    if not isinstance(raw, list):
-        return []
-    indexed = [
-        (i, r) for i, r in enumerate(raw) if isinstance(r, dict)
-    ]
-    indexed.sort(
-        key=lambda ir: (
-            _sixth_job_core_type_rank(
-                str(_nget(ir[1], "hexa_core_type", "hexaCoreType") or "")
-            ),
-            _slot_sort_key(ir[1]),
-            ir[0],
-        ),
-    )
-    return [r for _, r in indexed]
-
-
 def _hexa_linked_skill_ids(row: dict) -> list[str]:
     raw = _nget(row, "linked_skill", "linkedSkill")
     if not isinstance(raw, list):
@@ -989,6 +979,29 @@ def _order_skills_like_reference(
     )
 
 
+def _sixth_reserved_from_common(
+    common: list[JobSkillSixthCommonCoreUi],
+) -> set[str]:
+    reserved: set[str] = set()
+    for cc in common:
+        for part in _split_hexa_core_display_names(cc.hexaCoreName):
+            k = _norm_skill_key(part)
+            if k:
+                reserved.add(k)
+        fk = _norm_skill_key(cc.hexaCoreName)
+        if fk:
+            reserved.add(fk)
+        for le in cc.linkedSkills:
+            if le.skill:
+                reserved.add(_norm_skill_key(le.skill.skillName))
+    return reserved
+
+
+def _is_hexa_stat_skill_name(skill_name: str) -> bool:
+    n = (skill_name or "").strip()
+    return "HEXA 스탯" in n or _norm_skill_key(n) == _norm_skill_key("HEXA 스탯")
+
+
 def _job_skill_sixth_bundle(
     skill6_raw: dict, hexa_matrix_raw: dict
 ) -> JobSkillSixthBundle:
@@ -998,45 +1011,82 @@ def _job_skill_sixth_bundle(
     remaining: set[str] = set(name_to.keys())
     id_to = _sixth_skill_id_to_ui(skill6_raw)
 
+    raw_eq = _nget(
+        hexa_matrix_raw,
+        "character_hexa_core_equipment",
+        "characterHexaCoreEquipment",
+    )
+    rows_all = [r for r in raw_eq if isinstance(r, dict)] if isinstance(raw_eq, list) else []
+    common_rows: list[tuple[int, dict]] = []
+    other_rows: list[tuple[int, dict]] = []
+    for i, row in enumerate(rows_all):
+        rank = _sixth_job_core_type_rank(str(_nget(row, "hexa_core_type", "hexaCoreType") or ""))
+        if rank >= 99:
+            continue
+        if rank == 3:
+            common_rows.append((i, row))
+        else:
+            other_rows.append((i, row))
+
+    common_rows.sort(key=lambda ir: (_slot_sort_key(ir[1]), ir[0]))
+    other_rows.sort(
+        key=lambda ir: (
+            _sixth_non_common_process_order(
+                _sixth_job_core_type_rank(
+                    str(_nget(ir[1], "hexa_core_type", "hexaCoreType") or "")
+                )
+            ),
+            _slot_sort_key(ir[1]),
+            ir[0],
+        ),
+    )
+
+    hexa_stat_ui: JobSkillUi | None = None
+    for sk in all_list:
+        if _is_hexa_stat_skill_name(sk.skillName):
+            hexa_stat_ui = sk
+            remaining.discard(_norm_skill_key(sk.skillName))
+            break
+
+    common: list[JobSkillSixthCommonCoreUi] = []
+    for _, row in common_rows:
+        cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
+        clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
+        linked: list[HexaLinkedSkillEntryUi] = []
+        for lid in _hexa_linked_skill_ids(row):
+            sk = id_to.get(lid)
+            linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
+            if sk:
+                remaining.discard(_norm_skill_key(sk.skillName))
+        common.append(
+            JobSkillSixthCommonCoreUi(
+                hexaCoreName=cname,
+                hexaCoreLevel=clvl,
+                linkedSkills=linked,
+            )
+        )
+
+    reserved = _sixth_reserved_from_common(common)
+
     sc: list[JobSkillUi] = []
     mc: list[JobSkillUi] = []
     bc: list[JobSkillUi] = []
-    common: list[JobSkillSixthCommonCoreUi] = []
 
-    for row in _sorted_hexa_matrix_equipment(hexa_matrix_raw):
-        typ = str(_nget(row, "hexa_core_type", "hexaCoreType") or "")
-        rank = _sixth_job_core_type_rank(typ)
-        if rank >= 99:
-            continue
+    for _, row in other_rows:
+        rank = _sixth_job_core_type_rank(str(_nget(row, "hexa_core_type", "hexaCoreType") or ""))
         cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
-        clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
-
-        if rank == 3:
-            linked: list[HexaLinkedSkillEntryUi] = []
-            for lid in _hexa_linked_skill_ids(row):
-                sk = id_to.get(lid)
-                linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
-                if sk:
-                    remaining.discard(_norm_skill_key(sk.skillName))
-            common.append(
-                JobSkillSixthCommonCoreUi(
-                    hexaCoreName=cname,
-                    hexaCoreLevel=clvl,
-                    linkedSkills=linked,
-                )
-            )
-            continue
-
         taken: list[JobSkillUi] = []
         seen_taken: set[str] = set()
         for part in _split_hexa_core_display_names(cname):
             nk = _norm_skill_key(part)
+            if nk in reserved:
+                continue
             if nk in remaining and nk in name_to and nk not in seen_taken:
                 taken.append(name_to[nk])
                 seen_taken.add(nk)
                 remaining.discard(nk)
         fk = _norm_skill_key(cname)
-        if fk in remaining and fk in name_to and fk not in seen_taken:
+        if fk not in reserved and fk in remaining and fk in name_to and fk not in seen_taken:
             taken.append(name_to[fk])
             seen_taken.add(fk)
             remaining.discard(fk)
@@ -1053,17 +1103,24 @@ def _job_skill_sixth_bundle(
         nk = _norm_skill_key(sk.skillName)
         if nk not in remaining:
             continue
+        if nk in reserved:
+            remaining.discard(nk)
+            continue
         if "강화" in (sk.skillName or ""):
             bc.append(sk)
         else:
             sc.append(sk)
         remaining.discard(nk)
 
+    def _strip_reserved(lst: list[JobSkillUi]) -> list[JobSkillUi]:
+        return [s for s in lst if _norm_skill_key(s.skillName) not in reserved]
+
     return JobSkillSixthBundle(
-        skillCores=sc,
-        masteryCores=mc,
-        boostCores=bc,
+        masteryCores=_strip_reserved(mc),
+        skillCores=_strip_reserved(sc),
         commonCores=common,
+        boostCores=_strip_reserved(bc),
+        hexaStatSkill=hexa_stat_ui,
     )
 
 
@@ -1094,6 +1151,7 @@ def _fifth_skill_bucket_by_name(vm_payload: dict) -> dict[str, int]:
             _nget(row, "v_core_skill_1", "vCoreSkill1"),
             _nget(row, "v_core_skill_2", "vCoreSkill2"),
             _nget(row, "v_core_skill_3", "vCoreSkill3"),
+            _nget(row, "v_core_name", "vCoreName"),
         ):
             if sk is None:
                 continue
@@ -1106,6 +1164,27 @@ def _fifth_skill_bucket_by_name(vm_payload: dict) -> dict[str, int]:
     return name_to_bucket
 
 
+def _fifth_bucket_fallback(slim: dict[str, Any]) -> int:
+    name = str(slim.get("skillName") or "")
+    lvl = _parse_int(slim.get("skillLevel")) or 0
+
+    if "쓸만한" in name:
+        return 2
+    if name.strip() in ("로프 커넥트", "블링크"):
+        return 2
+    if "일격필살" in name:
+        return 2
+    if "에르다 노바" in name or "에르다의 의지" in name:
+        return 2
+    if "에르다 샤워" in name or "에르다 파운틴" in name:
+        return 2
+
+    if "강화" in name and (lvl >= 50 or name.rstrip().endswith("강화")):
+        return 0
+
+    return 1
+
+
 def _job_skill_fifth_bundle(skill5_raw: dict, vmatrix_raw: dict) -> JobSkillFifthBundle:
     rows = _skills_from_character_skill_payload(skill5_raw)
     rows = _sort_fifth_skill_rows_by_vmatrix(rows, vmatrix_raw)
@@ -1115,7 +1194,9 @@ def _job_skill_fifth_bundle(skill5_raw: dict, vmatrix_raw: dict) -> JobSkillFift
     spc: list[JobSkillUi] = []
     for slim in rows:
         nk = _norm_skill_key(str(slim.get("skillName") or ""))
-        b = bucket.get(nk, 2)
+        b = bucket.get(nk)
+        if b is None:
+            b = _fifth_bucket_fallback(slim)
         ui = JobSkillUi.model_validate(slim)
         if b == 0:
             boost.append(ui)
