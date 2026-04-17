@@ -18,6 +18,7 @@ from schemas.character_all import (
     HexaStatCoreUi,
     HexaStatLineUi,
     JobSkillFifthBundle,
+    JobSkillFifthCategorySectionUi,
     JobSkillSixthBundle,
     JobSkillSixthCategorySectionUi,
     JobSkillUi,
@@ -816,23 +817,17 @@ def _skills_from_character_skill_payload(payload: dict) -> list[dict[str, Any]]:
     return [r for r in out if _norm_skill_key(str(r.get("skillName") or ""))]
 
 
+def _job_skills_by_norm_key(skill_raw: dict) -> dict[str, JobSkillUi]:
+    out: dict[str, JobSkillUi] = {}
+    for slim in _skills_from_character_skill_payload(skill_raw):
+        nk = _norm_skill_key(str(slim.get("skillName") or ""))
+        if nk:
+            out[nk] = JobSkillUi.model_validate(slim)
+    return out
+
+
 def _collapse_type_ws(s: str) -> str:
     return re.sub(r"\s+", "", (s or "").strip())
-
-
-def _fifth_job_core_type_rank(core_type: str) -> int:
-    raw = (core_type or "").strip()
-    if not raw:
-        return 99
-    t = _collapse_type_ws(raw)
-    tl = raw.lower()
-    if "특수" in raw or "special" in tl:
-        return 2
-    if "강화" in raw or "강화" in t or "enhance" in tl or "boost" in tl:
-        return 0
-    if "스킬" in raw or "skill" in tl:
-        return 1
-    return 99
 
 
 def _slot_sort_key(row: dict) -> tuple[int, int | str]:
@@ -843,60 +838,80 @@ def _slot_sort_key(row: dict) -> tuple[int, int | str]:
         return (1, str(sid_raw or ""))
 
 
-def _fifth_skill_order_from_vmatrix(vm_payload: dict) -> dict[str, int]:
+def _vmatrix_v_core_rows_sorted(vmatrix_raw: dict) -> list[dict]:
     raw = _nget(
-        vm_payload,
+        vmatrix_raw,
         "character_v_core_equipment",
         "characterVCoreEquipment",
     )
     if not isinstance(raw, list):
-        return {}
-    ranked: list[tuple[int, tuple[int, int | str], dict]] = []
-    for row in raw:
-        if not isinstance(row, dict):
-            continue
-        typ = str(_nget(row, "v_core_type", "vCoreType") or "")
-        rnk = _fifth_job_core_type_rank(typ)
-        if rnk >= 99:
-            continue
-        ranked.append((rnk, _slot_sort_key(row), row))
-    ranked.sort(key=lambda t: (t[0], t[1]))
-    out: dict[str, int] = {}
-    pos = 0
-    for _, __, row in ranked:
+        return []
+    return sorted([r for r in raw if isinstance(r, dict)], key=_slot_sort_key)
+
+
+def _fifth_vmatrix_label_from_row_type(core_type: str) -> str:
+    raw = (core_type or "").strip()
+    if not raw:
+        return "기타"
+    t = _collapse_type_ws(raw)
+    tl = raw.lower()
+    if "특수" in raw or "special" in tl:
+        return "특수 코어"
+    if "공용" in raw or "common" in tl:
+        return "공용 코어"
+    if "강화" in t or "enhance" in tl or "boost" in tl:
+        return "강화 코어"
+    if "직업" in raw or "스킬" in t or "skill" in tl:
+        return "직업 코어"
+    return "기타"
+
+
+def _fifth_vmatrix_category_maps(
+    rows: list[dict],
+) -> tuple[dict[str, str], list[tuple[str, str]]]:
+    name_to_label: dict[str, str] = {}
+    boost_bundles: list[tuple[str, str]] = []
+    for row in rows:
+        label = _fifth_vmatrix_label_from_row_type(
+            str(_nget(row, "v_core_type", "vCoreType") or "")
+        )
+        if label == "강화 코어":
+            vn = str(_nget(row, "v_core_name", "vCoreName") or "").strip()
+            if vn:
+                boost_bundles.append((vn, label))
         for sk in (
             _nget(row, "v_core_skill_1", "vCoreSkill1"),
             _nget(row, "v_core_skill_2", "vCoreSkill2"),
             _nget(row, "v_core_skill_3", "vCoreSkill3"),
+            _nget(row, "v_core_name", "vCoreName"),
         ):
             if sk is None:
                 continue
             t = str(sk).strip()
             if not t:
                 continue
-            k = _norm_skill_key(t)
-            if not k or k in out:
-                continue
-            out[k] = pos
-            pos += 1
-    return out
+            nk = _norm_skill_key(t)
+            if nk and nk not in name_to_label:
+                name_to_label[nk] = label
+    return name_to_label, boost_bundles
 
 
-def _sort_fifth_skill_rows_by_vmatrix(
-    skills: list[dict[str, Any]], vm_payload: dict
-) -> list[dict[str, Any]]:
-    order = _fifth_skill_order_from_vmatrix(vm_payload)
-    if not order or not skills:
-        return skills
-    indexed = list(enumerate(skills))
-    big = 10**9
-    indexed.sort(
-        key=lambda ij: (
-            order.get(_norm_skill_key(str(ij[1].get("skillName") or "")), big),
-            ij[0],
-        ),
-    )
-    return [s for _, s in indexed]
+def _fifth_find_v_category(
+    skill_name: str,
+    name_to_label: dict[str, str],
+    boost_bundles: list[tuple[str, str]],
+) -> str:
+    nk = _norm_skill_key(skill_name)
+    if nk in name_to_label:
+        return name_to_label[nk]
+    raw = (skill_name or "").strip()
+    if " 강화" in raw or raw.endswith("강화"):
+        base = raw.replace(" 강화", "").strip()
+        if base:
+            for v_bundle, lab in boost_bundles:
+                if base in v_bundle:
+                    return lab
+    return "기타"
 
 
 def _hexa_linked_skill_specs(row: dict) -> list[tuple[str, str]]:
@@ -931,16 +946,6 @@ def _is_hexa_stat_skill_name(skill_name: str) -> bool:
     return "HEXA 스탯" in n or _norm_skill_key(n) == _norm_skill_key("HEXA 스탯")
 
 
-def _skill6_by_skill_name(skill6_raw: dict) -> dict[str, JobSkillUi]:
-    rows = _skills_from_character_skill_payload(skill6_raw)
-    out: dict[str, JobSkillUi] = {}
-    for slim in rows:
-        nk = _norm_skill_key(str(slim.get("skillName") or ""))
-        if nk:
-            out[nk] = JobSkillUi.model_validate(slim)
-    return out
-
-
 def _sixth_linked_skill_ui(
     lid: str, hint: str, skill_by_name: dict[str, JobSkillUi]
 ) -> JobSkillUi | None:
@@ -960,9 +965,9 @@ def _sixth_hexa_core_section_sort_order(core_type: str) -> int:
     tl = raw.lower()
     if "마스터리" in raw or "mastery" in tl:
         return 0
-    if "강화" in raw or "강화" in t or "enhance" in tl or "boost" in tl:
+    if "강화" in t or "enhance" in tl or "boost" in tl:
         return 1
-    if "스킬" in raw or "skill" in tl:
+    if "스킬" in t or "skill" in tl:
         return 2
     if "공용" in raw or "common" in tl:
         return 3
@@ -972,7 +977,7 @@ def _sixth_hexa_core_section_sort_order(core_type: str) -> int:
 def _job_skill_sixth_bundle(
     skill6_raw: dict, hexa_matrix_raw: dict
 ) -> JobSkillSixthBundle:
-    skill_by_name = _skill6_by_skill_name(skill6_raw)
+    skill_by_name = _job_skills_by_norm_key(skill6_raw)
     raw_eq = _nget(
         hexa_matrix_raw,
         "character_hexa_core_equipment",
@@ -1010,87 +1015,46 @@ def _job_skill_sixth_bundle(
     return JobSkillSixthBundle(sections=sections, hexaStatSkill=hexa_stat_ui)
 
 
-def _fifth_skill_bucket_by_name(vm_payload: dict) -> dict[str, int]:
-    raw = _nget(
-        vm_payload,
-        "character_v_core_equipment",
-        "characterVCoreEquipment",
-    )
-    if not isinstance(raw, list):
-        return {}
-    ranked: list[tuple[int, tuple[int, int | str], dict]] = []
-    for row in raw:
-        if not isinstance(row, dict):
-            continue
-        typ = str(_nget(row, "v_core_type", "vCoreType") or "")
-        rnk = _fifth_job_core_type_rank(typ)
-        if rnk >= 99:
-            continue
-        ranked.append((rnk, _slot_sort_key(row), row))
-    ranked.sort(key=lambda t: (t[0], t[1]))
-    name_to_bucket: dict[str, int] = {}
-    for _, __, row in ranked:
-        rnk = _fifth_job_core_type_rank(str(_nget(row, "v_core_type", "vCoreType") or ""))
-        if rnk >= 99:
-            continue
+def _job_skill_fifth_bundle(skill5_raw: dict, vmatrix_raw: dict) -> JobSkillFifthBundle:
+    rows_sorted = _vmatrix_v_core_rows_sorted(vmatrix_raw)
+    name_to_label, boost_bundles = _fifth_vmatrix_category_maps(rows_sorted)
+    skill_by_name = _job_skills_by_norm_key(skill5_raw)
+    buckets: dict[str, list[JobSkillUi]] = {}
+    seen: set[str] = set()
+    for row in rows_sorted:
         for sk in (
             _nget(row, "v_core_skill_1", "vCoreSkill1"),
             _nget(row, "v_core_skill_2", "vCoreSkill2"),
             _nget(row, "v_core_skill_3", "vCoreSkill3"),
-            _nget(row, "v_core_name", "vCoreName"),
         ):
             if sk is None:
                 continue
-            t = str(sk).strip()
-            if not t:
+            nm = str(sk).strip()
+            if not nm:
                 continue
-            k = _norm_skill_key(t)
-            if k and k not in name_to_bucket:
-                name_to_bucket[k] = rnk
-    return name_to_bucket
-
-
-def _fifth_bucket_fallback(slim: dict[str, Any]) -> int:
-    name = str(slim.get("skillName") or "")
-    lvl = _parse_int(slim.get("skillLevel")) or 0
-
-    if "쓸만한" in name:
-        return 2
-    if name.strip() in ("로프 커넥트", "블링크"):
-        return 2
-    if "일격필살" in name:
-        return 2
-    if "에르다 노바" in name or "에르다의 의지" in name:
-        return 2
-    if "에르다 샤워" in name or "에르다 파운틴" in name:
-        return 2
-
-    if "강화" in name and (lvl >= 50 or name.rstrip().endswith("강화")):
-        return 0
-
-    return 1
-
-
-def _job_skill_fifth_bundle(skill5_raw: dict, vmatrix_raw: dict) -> JobSkillFifthBundle:
-    rows = _skills_from_character_skill_payload(skill5_raw)
-    rows = _sort_fifth_skill_rows_by_vmatrix(rows, vmatrix_raw)
-    bucket = _fifth_skill_bucket_by_name(vmatrix_raw)
-    boost: list[JobSkillUi] = []
-    skl: list[JobSkillUi] = []
-    spc: list[JobSkillUi] = []
-    for slim in rows:
-        nk = _norm_skill_key(str(slim.get("skillName") or ""))
-        b = bucket.get(nk)
-        if b is None:
-            b = _fifth_bucket_fallback(slim)
-        ui = JobSkillUi.model_validate(slim)
-        if b == 0:
-            boost.append(ui)
-        elif b == 1:
-            skl.append(ui)
-        else:
-            spc.append(ui)
-    return JobSkillFifthBundle(boostCores=boost, skillCores=skl, specialCores=spc)
+            nk = _norm_skill_key(nm)
+            ui = skill_by_name.get(nk)
+            if ui is None or nk in seen:
+                continue
+            lab = _fifth_find_v_category(ui.skillName, name_to_label, boost_bundles)
+            buckets.setdefault(lab, []).append(ui)
+            seen.add(nk)
+    for nk, ui in skill_by_name.items():
+        if nk in seen:
+            continue
+        lab = _fifth_find_v_category(ui.skillName, name_to_label, boost_bundles)
+        buckets.setdefault(lab, []).append(ui)
+        seen.add(nk)
+    order_labels = ("직업 코어", "강화 코어", "공용 코어", "특수 코어")
+    sections = [
+        JobSkillFifthCategorySectionUi(vCoreType=lab, skills=buckets.get(lab, []))
+        for lab in order_labels
+    ]
+    if buckets.get("기타"):
+        sections.append(
+            JobSkillFifthCategorySectionUi(vCoreType="기타", skills=buckets["기타"])
+        )
+    return JobSkillFifthBundle(sections=sections)
 
 
 def _set_effects_ui(payload: dict) -> list[SetEffectUi]:

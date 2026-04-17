@@ -185,12 +185,17 @@ class JobSkillSixthBundle(BaseModel):
     hexaStatSkill: JobSkillUi | None = None
 
 
+class JobSkillFifthCategorySectionUi(BaseModel):
+    model_config = _MODEL
+
+    vCoreType: str = ""
+    skills: list[JobSkillUi] = Field(default_factory=list)
+
+
 class JobSkillFifthBundle(BaseModel):
     model_config = _MODEL
 
-    boostCores: list[JobSkillUi] = Field(default_factory=list)
-    skillCores: list[JobSkillUi] = Field(default_factory=list)
-    specialCores: list[JobSkillUi] = Field(default_factory=list)
+    sections: list[JobSkillFifthCategorySectionUi] = Field(default_factory=list)
 
 
 class HexaStatLineUi(BaseModel):
