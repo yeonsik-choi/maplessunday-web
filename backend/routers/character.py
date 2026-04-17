@@ -935,18 +935,45 @@ def _sort_fifth_skill_rows_by_vmatrix(
     return [s for _, s in indexed]
 
 
-def _hexa_linked_skill_ids(row: dict) -> list[str]:
+def _hexa_linked_skill_specs(row: dict) -> list[tuple[str, str]]:
+    """공용 코어 linked_skill: (hexa_skill_id, 이름 힌트). 힌트는 API에 있을 때만."""
     raw = _nget(row, "linked_skill", "linkedSkill")
     if not isinstance(raw, list):
         return []
-    out: list[str] = []
+    out: list[tuple[str, str]] = []
     for item in raw:
         if not isinstance(item, dict):
             continue
         hid = _nget(item, "hexa_skill_id", "hexaSkillId")
-        if hid is not None and str(hid).strip():
-            out.append(str(hid).strip())
+        if hid is None or not str(hid).strip():
+            continue
+        lid = str(hid).strip()
+        hint = ""
+        for hk in (
+            "skill_name",
+            "skillName",
+            "hexa_skill_name",
+            "hexaSkillName",
+        ):
+            v = _nget(item, hk)
+            if v is not None and str(v).strip():
+                hint = str(v).strip()
+                break
+        out.append((lid, hint))
     return out
+
+
+def _sixth_skill_id_register(out: dict[str, JobSkillUi], key: str, ui: JobSkillUi) -> None:
+    if not key:
+        return
+    if key not in out:
+        out[key] = ui
+    try:
+        alt = str(int(key.strip()))
+    except (TypeError, ValueError):
+        return
+    if alt not in out:
+        out[alt] = ui
 
 
 def _sixth_skill_id_to_ui(skill6_raw: dict) -> dict[str, JobSkillUi]:
@@ -964,8 +991,73 @@ def _sixth_skill_id_to_ui(skill6_raw: dict) -> dict[str, JobSkillUi]:
         if not _norm_skill_key(str(slim.get("skillName") or "")):
             continue
         key = str(hid).strip()
-        if key not in out:
-            out[key] = JobSkillUi.model_validate(slim)
+        ui = JobSkillUi.model_validate(slim)
+        _sixth_skill_id_register(out, key, ui)
+    return out
+
+
+def _resolve_sixth_skill_for_link(
+    lid: str,
+    hint: str,
+    id_to: dict[str, JobSkillUi],
+    name_to: dict[str, JobSkillUi],
+) -> JobSkillUi | None:
+    sk = id_to.get(lid)
+    if sk is not None:
+        return sk
+    try:
+        sk = id_to.get(str(int(lid.strip())))
+    except (TypeError, ValueError):
+        sk = None
+    if sk is not None:
+        return sk
+    if hint:
+        return name_to.get(_norm_skill_key(hint))
+    return None
+
+
+def _fill_sixth_common_null_links_from_core_name(
+    cname: str,
+    linked: list[HexaLinkedSkillEntryUi],
+    name_to: dict[str, JobSkillUi],
+) -> list[HexaLinkedSkillEntryUi]:
+    """linked_skill ID 매핑 실패 시, hexa_core_name 분할 조각으로 스킬 매칭."""
+    if not linked:
+        return linked
+    parts = _split_hexa_core_display_names(cname)
+    used: set[str] = set()
+    for le in linked:
+        if le.skill:
+            used.add(_norm_skill_key(le.skill.skillName))
+    out: list[HexaLinkedSkillEntryUi] = []
+    pi = 0
+    for le in linked:
+        if le.skill is not None:
+            out.append(le)
+            continue
+        sk: JobSkillUi | None = None
+        while pi < len(parts):
+            pk = _norm_skill_key(parts[pi])
+            pi += 1
+            if not pk or pk in used:
+                continue
+            if pk in name_to:
+                sk = name_to[pk]
+                used.add(pk)
+                break
+        if sk is None:
+            for p in parts:
+                pk = _norm_skill_key(p)
+                if not pk or pk in used:
+                    continue
+                if pk in name_to:
+                    sk = name_to[pk]
+                    used.add(pk)
+                    break
+        if sk is not None:
+            out.append(HexaLinkedSkillEntryUi(hexaSkillId=le.hexaSkillId, skill=sk))
+        else:
+            out.append(le)
     return out
 
 
@@ -1053,11 +1145,15 @@ def _job_skill_sixth_bundle(
         cname = str(_nget(row, "hexa_core_name", "hexaCoreName") or "")
         clvl = _parse_int(_nget(row, "hexa_core_level", "hexaCoreLevel")) or 0
         linked: list[HexaLinkedSkillEntryUi] = []
-        for lid in _hexa_linked_skill_ids(row):
-            sk = id_to.get(lid)
+        for lid, hint in _hexa_linked_skill_specs(row):
+            sk = _resolve_sixth_skill_for_link(lid, hint, id_to, name_to)
             linked.append(HexaLinkedSkillEntryUi(hexaSkillId=lid, skill=sk))
             if sk:
                 remaining.discard(_norm_skill_key(sk.skillName))
+        linked = _fill_sixth_common_null_links_from_core_name(cname, linked, name_to)
+        for le in linked:
+            if le.skill:
+                remaining.discard(_norm_skill_key(le.skill.skillName))
         common.append(
             JobSkillSixthCommonCoreUi(
                 hexaCoreName=cname,
