@@ -865,7 +865,7 @@ def _split_hexa_core_display_names(hexa_core_name: str) -> list[str]:
     s = (hexa_core_name or "").strip()
     if not s:
         return []
-    parts = re.split(r"[/|·,+]+", s)
+    parts = re.split(r"[/|·,+、／]+", s)
     out = [p.strip() for p in parts if p.strip()]
     return out if out else [s]
 
@@ -1114,6 +1114,45 @@ def _sixth_common_equipment_reserved_skill_keys(
     return keys
 
 
+def _sixth_skill_name_keys_for_common_linked_ids(
+    skill6_raw: dict, common_rows: list[tuple[int, dict]]
+) -> set[str]:
+    linked_ids: set[str] = set()
+    for _, row in common_rows:
+        for lid, _ in _hexa_linked_skill_specs(row):
+            if not lid:
+                continue
+            linked_ids.add(lid)
+            try:
+                linked_ids.add(str(int(lid.strip())))
+            except (TypeError, ValueError):
+                pass
+    if not linked_ids:
+        return set()
+    raw = _nget(skill6_raw, "character_skill", "characterSkill")
+    if not isinstance(raw, list):
+        return set()
+    out: set[str] = set()
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        hid = _nget(row, "hexa_skill_id", "hexaSkillId", "skill_id", "skillId")
+        if hid is None or not str(hid).strip():
+            continue
+        keys = {str(hid).strip()}
+        try:
+            keys.add(str(int(str(hid).strip())))
+        except (TypeError, ValueError):
+            pass
+        if not linked_ids.intersection(keys):
+            continue
+        slim = _slim_skill_api_row(row)
+        nk = _norm_skill_key(str(slim.get("skillName") or ""))
+        if nk:
+            out.add(nk)
+    return out
+
+
 def _backfill_sixth_common_nulls_from_skill_cores(
     cc: JobSkillSixthCommonCoreUi,
     row: dict,
@@ -1224,6 +1263,7 @@ def _job_skill_sixth_bundle(
             break
 
     reserved = _sixth_common_equipment_reserved_skill_keys(common_rows, id_to, name_to)
+    reserved |= _sixth_skill_name_keys_for_common_linked_ids(skill6_raw, common_rows)
 
     common_pair: list[tuple[dict, JobSkillSixthCommonCoreUi]] = []
     for _, row in common_rows:
