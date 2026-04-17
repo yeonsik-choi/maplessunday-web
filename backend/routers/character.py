@@ -954,6 +954,23 @@ def _sixth_linked_skill_ui(
     return None
 
 
+def _sixth_hexa_core_section_sort_order(core_type: str) -> int:
+    raw = (core_type or "").strip()
+    if not raw:
+        return 4
+    t = _collapse_type_ws(raw)
+    tl = raw.lower()
+    if "마스터리" in raw or "mastery" in tl:
+        return 0
+    if "강화" in raw or "강화" in t or "enhance" in tl or "boost" in tl:
+        return 1
+    if "스킬" in raw or "skill" in tl:
+        return 2
+    if "공용" in raw or "common" in tl:
+        return 3
+    return 4
+
+
 def _job_skill_sixth_bundle(
     skill6_raw: dict, hexa_matrix_raw: dict
 ) -> JobSkillSixthBundle:
@@ -965,7 +982,6 @@ def _job_skill_sixth_bundle(
     )
     rows_all = [r for r in raw_eq if isinstance(r, dict)] if isinstance(raw_eq, list) else []
     rows_sorted = sorted(rows_all, key=_slot_sort_key)
-    type_order: list[str] = []
     buckets: dict[str, list[JobSkillSixthMatrixCoreUi]] = {}
 
     for row in rows_sorted:
@@ -983,12 +999,15 @@ def _job_skill_sixth_bundle(
         )
         if typ not in buckets:
             buckets[typ] = []
-            type_order.append(typ)
         buckets[typ].append(core)
 
+    section_types = sorted(
+        buckets.keys(),
+        key=lambda k: (_sixth_hexa_core_section_sort_order(k), k),
+    )
     sections = [
         JobSkillSixthCategorySectionUi(hexaCoreType=t, cores=buckets[t])
-        for t in type_order
+        for t in section_types
     ]
 
     hexa_stat_ui: JobSkillUi | None = None
