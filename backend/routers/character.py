@@ -845,12 +845,12 @@ def _fifth_job_core_type_rank(core_type: str) -> int:
     t = _collapse_type_ws(core_type)
     if not t:
         return 99
-    if "특수" in t:
-        return 2
     if "강화" in t:
         return 0
     if "스킬" in t:
         return 1
+    if "특수" in t:
+        return 2
     return 99
 
 
@@ -896,7 +896,15 @@ def _hexamatrix_skill_rank_map(hexa_payload: dict) -> dict[str, int]:
     return out
 
 
-def _vmatrix_skill_rank_map(vm_payload: dict) -> dict[str, int]:
+def _vmatrix_slot_sort_key(row: dict) -> tuple[int, int | str]:
+    sid_raw = _nget(row, "slot_id", "slotId")
+    try:
+        return (0, int(str(sid_raw).strip()))
+    except (TypeError, ValueError):
+        return (1, str(sid_raw or ""))
+
+
+def _fifth_skill_order_from_vmatrix(vm_payload: dict) -> dict[str, int]:
     raw = _nget(
         vm_payload,
         "character_v_core_equipment",
@@ -904,25 +912,52 @@ def _vmatrix_skill_rank_map(vm_payload: dict) -> dict[str, int]:
     )
     if not isinstance(raw, list):
         return {}
-    out: dict[str, int] = {}
+    ranked: list[tuple[int, tuple[int, int | str], dict]] = []
     for row in raw:
         if not isinstance(row, dict):
             continue
         typ = str(_nget(row, "v_core_type", "vCoreType") or "")
-        rank = _fifth_job_core_type_rank(typ)
-        if rank >= 99:
+        rnk = _fifth_job_core_type_rank(typ)
+        if rnk >= 99:
             continue
-        names = [
-            t
-            for sk in (
-                _nget(row, "v_core_skill_1", "vCoreSkill1"),
-                _nget(row, "v_core_skill_2", "vCoreSkill2"),
-                _nget(row, "v_core_skill_3", "vCoreSkill3"),
-            )
-            if sk is not None and (t := str(sk).strip())
-        ]
-        _register_skill_rank(out, names, rank)
+        ranked.append((rnk, _vmatrix_slot_sort_key(row), row))
+    ranked.sort(key=lambda t: (t[0], t[1]))
+    out: dict[str, int] = {}
+    pos = 0
+    for _, __, row in ranked:
+        for sk in (
+            _nget(row, "v_core_skill_1", "vCoreSkill1"),
+            _nget(row, "v_core_skill_2", "vCoreSkill2"),
+            _nget(row, "v_core_skill_3", "vCoreSkill3"),
+        ):
+            if sk is None:
+                continue
+            t = str(sk).strip()
+            if not t:
+                continue
+            k = _norm_skill_key(t)
+            if not k or k in out:
+                continue
+            out[k] = pos
+            pos += 1
     return out
+
+
+def _sort_fifth_skill_rows_by_vmatrix(
+    skills: list[dict[str, Any]], vm_payload: dict
+) -> list[dict[str, Any]]:
+    order = _fifth_skill_order_from_vmatrix(vm_payload)
+    if not order or not skills:
+        return skills
+    indexed = list(enumerate(skills))
+    big = 10**9
+    indexed.sort(
+        key=lambda ij: (
+            order.get(_norm_skill_key(str(ij[1].get("skillName") or "")), big),
+            ij[0],
+        ),
+    )
+    return [s for _, s in indexed]
 
 
 def _skill_row_rank(skill: dict[str, Any], name_rank: dict[str, int]) -> int:
@@ -1086,9 +1121,7 @@ async def get_character_info(nickname: str):
         sixth_rows, _hexamatrix_skill_rank_map(hexa_matrix_raw)
     )
     fifth_rows = _skills_from_character_skill_payload(skill5_raw)
-    fifth_rows = _sort_skill_rows_by_core_rank(
-        fifth_rows, _vmatrix_skill_rank_map(vmatrix_raw)
-    )
+    fifth_rows = _sort_fifth_skill_rows_by_vmatrix(fifth_rows, vmatrix_raw)
     job_sixth = [JobSkillUi.model_validate(x) for x in sixth_rows]
     job_fifth = [JobSkillUi.model_validate(x) for x in fifth_rows]
     hexa_matrix_stat = _hexa_matrix_stat_ui(hexa_raw)
