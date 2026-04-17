@@ -1013,6 +1013,9 @@ def _resolve_sixth_skill_for_link(
     sk = _sixth_skill_ui_by_hexa_id(lid, id_to)
     if sk is not None:
         return sk
+    nk_lid = _norm_skill_key(lid)
+    if nk_lid and nk_lid in name_to:
+        return name_to[nk_lid]
     if hint:
         return name_to.get(_norm_skill_key(hint))
     return None
@@ -1115,24 +1118,32 @@ def _sixth_common_equipment_reserved_skill_keys(
 
 
 def _sixth_skill_name_keys_for_common_linked_ids(
-    skill6_raw: dict, common_rows: list[tuple[int, dict]]
+    skill6_raw: dict,
+    common_rows: list[tuple[int, dict]],
+    name_to: dict[str, JobSkillUi],
 ) -> set[str]:
+    out: set[str] = set()
     linked_ids: set[str] = set()
     for _, row in common_rows:
-        for lid, _ in _hexa_linked_skill_specs(row):
-            if not lid:
-                continue
-            linked_ids.add(lid)
-            try:
-                linked_ids.add(str(int(lid.strip())))
-            except (TypeError, ValueError):
-                pass
+        for lid, hint in _hexa_linked_skill_specs(row):
+            if lid:
+                linked_ids.add(lid)
+                try:
+                    linked_ids.add(str(int(lid.strip())))
+                except (TypeError, ValueError):
+                    pass
+            nk = _norm_skill_key(lid)
+            if nk and nk in name_to:
+                out.add(nk)
+            if hint:
+                hk = _norm_skill_key(hint)
+                if hk and hk in name_to:
+                    out.add(hk)
     if not linked_ids:
-        return set()
+        return out
     raw = _nget(skill6_raw, "character_skill", "characterSkill")
     if not isinstance(raw, list):
-        return set()
-    out: set[str] = set()
+        return out
     for row in raw:
         if not isinstance(row, dict):
             continue
@@ -1180,6 +1191,8 @@ def _backfill_sixth_common_nulls_from_skill_cores(
             sk = sc_by.get(_norm_skill_key(ref.skillName))
         if sk is None and hint:
             sk = sc_by.get(_norm_skill_key(hint))
+        if sk is None:
+            sk = sc_by.get(_norm_skill_key(lid))
         if sk is None:
             while part_i < len(parts):
                 pk = _norm_skill_key(parts[part_i])
@@ -1263,7 +1276,9 @@ def _job_skill_sixth_bundle(
             break
 
     reserved = _sixth_common_equipment_reserved_skill_keys(common_rows, id_to, name_to)
-    reserved |= _sixth_skill_name_keys_for_common_linked_ids(skill6_raw, common_rows)
+    reserved |= _sixth_skill_name_keys_for_common_linked_ids(
+        skill6_raw, common_rows, name_to
+    )
 
     common_pair: list[tuple[dict, JobSkillSixthCommonCoreUi]] = []
     for _, row in common_rows:
