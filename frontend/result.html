@@ -214,6 +214,20 @@
     .skill-name { font-size: 0.9rem; font-weight: 700; color: var(--maple-brown); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .skill-level { font-size: 0.8rem; font-weight: 500; color: rgba(92,46,0,0.6); }
 
+    /* ── 헥사 스탯 스타일 추가 ── */
+    .hexa-stat-container { margin-top: 32px; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 24px; }
+    .hexa-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    @media (max-width: 800px) { .hexa-stat-grid { grid-template-columns: 1fr; } }
+    .hexa-stat-card { display: flex; flex-direction: column; gap: 8px; }
+    .hexa-stat-header { font-size: 0.9rem; font-weight: 800; color: #7899A6; margin-bottom: 4px; padding-left: 4px; }
+    .hexa-stat-body { display: flex; flex-direction: column; gap: 6px; }
+    .hexa-stat-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 6px; background: #FAFAFA; }
+    .hexa-stat-row.main { background: #EAF0F4; }
+    .hexa-stat-lv { font-size: 0.75rem; font-weight: 800; color: #fff; background: #CFD8DC; padding: 3px 8px; border-radius: 4px; }
+    .hexa-stat-row.main .hexa-stat-lv { background: #90A4AE; }
+    .hexa-stat-name { font-size: 0.85rem; color: #555; }
+    .hexa-stat-row.main .hexa-stat-name { font-weight: 700; color: #222; }
+
     /* ── 장비/스킬 상세 툴팁 (모달) ── */
     .tooltip-overlay { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: 20px; }
     .tooltip-box { background: rgba(17, 17, 17, 0.95); border: 1.5px solid rgba(255,255,255,0.8); border-radius: 8px; width: 100%; max-width: 320px; color: #fff; font-family: 'Noto Sans KR', sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; overflow: hidden; }
@@ -555,7 +569,43 @@
               </div>
             </div>
             <div v-if="!char.jobSkillSixth || ((!char.jobSkillSixth.sections || char.jobSkillSixth.sections.length === 0) && !char.jobSkillSixth.hexaStatSkill)" style="text-align: center; padding: 40px; color: #888;">6차 스킬 정보가 없습니다.</div>
-          </div>
+
+            <div class="hexa-stat-container" v-if="char.hexaMatrixStat && (char.hexaMatrixStat.characterHexaStatCore.length > 0 || char.hexaMatrixStat.characterHexaStatCore2.length > 0 || char.hexaMatrixStat.characterHexaStatCore3.length > 0)">
+              <div class="hexa-stat-grid">
+                
+                <div class="hexa-stat-card" v-if="char.hexaMatrixStat.characterHexaStatCore.length > 0">
+                  <div class="hexa-stat-header">HEXA STATS I</div>
+                  <div class="hexa-stat-body" v-for="(core, cIdx) in char.hexaMatrixStat.characterHexaStatCore" :key="'core1-'+cIdx">
+                    <div class="hexa-stat-row" v-for="(row, idx) in core.rows" :key="idx" :class="{ main: idx === 0 }">
+                      <span class="hexa-stat-lv">Lv.{{ row.level }}</span>
+                      <span class="hexa-stat-name">{{ row.name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="hexa-stat-card" v-if="char.hexaMatrixStat.characterHexaStatCore2.length > 0">
+                  <div class="hexa-stat-header">HEXA STATS II</div>
+                  <div class="hexa-stat-body" v-for="(core, cIdx) in char.hexaMatrixStat.characterHexaStatCore2" :key="'core2-'+cIdx">
+                    <div class="hexa-stat-row" v-for="(row, idx) in core.rows" :key="idx" :class="{ main: idx === 0 }">
+                      <span class="hexa-stat-lv">Lv.{{ row.level }}</span>
+                      <span class="hexa-stat-name">{{ row.name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="hexa-stat-card" v-if="char.hexaMatrixStat.characterHexaStatCore3.length > 0">
+                  <div class="hexa-stat-header">HEXA STATS III</div>
+                  <div class="hexa-stat-body" v-for="(core, cIdx) in char.hexaMatrixStat.characterHexaStatCore3" :key="'core3-'+cIdx">
+                    <div class="hexa-stat-row" v-for="(row, idx) in core.rows" :key="idx" :class="{ main: idx === 0 }">
+                      <span class="hexa-stat-lv">Lv.{{ row.level }}</span>
+                      <span class="hexa-stat-name">{{ row.name }}</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            </div>
 
           <div class="skill-container" v-if="activeSkillTab === '5'">
             <div class="skill-grid">
