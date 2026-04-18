@@ -530,32 +530,50 @@
 
           <div class="skill-container" v-if="activeSkillTab === '6'">
             <div class="skill-grid">
-              <div class="skill-item" v-for="skill in char.jobSkillSixth" :key="skill.skillName" @click="openSkillTooltip(skill)">
+              <template v-if="char.jobSkillSixth && char.jobSkillSixth.sections">
+                <template v-for="(section, idx) in char.jobSkillSixth.sections" :key="'s6-'+idx">
+                  <div class="skill-item" v-for="skill in section.skills" :key="skill.skillName" @click="openSkillTooltip(skill)">
+                    <div class="skill-icon-wrap">
+                      <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+                    </div>
+                    <div class="skill-info">
+                      <div class="skill-name">{{ skill.skillName }}</div>
+                      <div class="skill-level">Lv.{{ skill.skillLevel }}</div>
+                    </div>
+                  </div>
+                </template>
+              </template>
+              
+              <div class="skill-item" v-if="char.jobSkillSixth && char.jobSkillSixth.hexaStatSkill" @click="openSkillTooltip(char.jobSkillSixth.hexaStatSkill)">
                 <div class="skill-icon-wrap">
-                  <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+                  <img :src="char.jobSkillSixth.hexaStatSkill.skillIcon" class="skill-icon-img" :alt="char.jobSkillSixth.hexaStatSkill.skillName">
                 </div>
                 <div class="skill-info">
-                  <div class="skill-name">{{ skill.skillName }}</div>
-                  <div class="skill-level">Lv.{{ skill.skillLevel }}</div>
+                  <div class="skill-name">{{ char.jobSkillSixth.hexaStatSkill.skillName }}</div>
+                  <div class="skill-level">Lv.{{ char.jobSkillSixth.hexaStatSkill.skillLevel }}</div>
                 </div>
               </div>
             </div>
-            <div v-if="!char.jobSkillSixth || char.jobSkillSixth.length === 0" style="text-align: center; padding: 40px; color: #888;">6차 스킬 정보가 없습니다.</div>
+            <div v-if="!char.jobSkillSixth || ((!char.jobSkillSixth.sections || char.jobSkillSixth.sections.length === 0) && !char.jobSkillSixth.hexaStatSkill)" style="text-align: center; padding: 40px; color: #888;">6차 스킬 정보가 없습니다.</div>
           </div>
 
           <div class="skill-container" v-if="activeSkillTab === '5'">
             <div class="skill-grid">
-              <div class="skill-item" v-for="skill in char.jobSkillFifth" :key="skill.skillName" @click="openSkillTooltip(skill)">
-                <div class="skill-icon-wrap">
-                  <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
-                </div>
-                <div class="skill-info">
-                  <div class="skill-name">{{ skill.skillName }}</div>
-                  <div class="skill-level">Lv.{{ skill.skillLevel }}</div>
-                </div>
-              </div>
+              <template v-if="char.jobSkillFifth && char.jobSkillFifth.sections">
+                <template v-for="(section, idx) in char.jobSkillFifth.sections" :key="'s5-'+idx">
+                  <div class="skill-item" v-for="skill in section.skills" :key="skill.skillName" @click="openSkillTooltip(skill)">
+                    <div class="skill-icon-wrap">
+                      <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+                    </div>
+                    <div class="skill-info">
+                      <div class="skill-name">{{ skill.skillName }}</div>
+                      <div class="skill-level">Lv.{{ skill.skillLevel }}</div>
+                    </div>
+                  </div>
+                </template>
+              </template>
             </div>
-            <div v-if="!char.jobSkillFifth || char.jobSkillFifth.length === 0" style="text-align: center; padding: 40px; color: #888;">5차 스킬 정보가 없습니다.</div>
+            <div v-if="!char.jobSkillFifth || !char.jobSkillFifth.sections || char.jobSkillFifth.sections.length === 0" style="text-align: center; padding: 40px; color: #888;">5차 스킬 정보가 없습니다.</div>
           </div>
         </div>
 
