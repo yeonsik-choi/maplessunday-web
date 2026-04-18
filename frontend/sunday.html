@@ -8,10 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Black+Han+Sans&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5408795886632712"
-     crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5408795886632712" crossorigin="anonymous"></script>
   <style>
-    /* ── BASE (기존 스타일 유지) ── */
+    /* ── BASE ── */
     :root {
       --maple-orange: #FF8C42; --maple-yellow: #FFD94A; --maple-pink: #FF6B9D;
       --maple-dark: #FFF9E6; --maple-brown: #5C2E00; --maple-gold: #F0A500;
@@ -22,7 +21,7 @@
     body { font-family: 'Noto Sans KR', sans-serif; background: #FDFDFD; color: var(--maple-light); }
     #app { display: flex; flex-direction: column; min-height: 100vh; position: relative; }
 
-    /* ── Header (기존 스타일 유지) ── */
+    /* ── Header ── */
     header {
       position: relative; z-index: 20; flex-shrink: 0; display: flex; flex-direction: column; align-items: center;
       background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,248,236,0.9) 100%);
@@ -66,6 +65,7 @@
       border-radius: 20px;
       box-shadow: 0 12px 30px rgba(255,165,0,0.06);
       overflow: hidden;
+      margin-bottom: 60px;
     }
     .pred-table { width: 100%; border-collapse: collapse; text-align: left; }
     .pred-table th {
@@ -115,7 +115,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* ── Footer (기존 스타일 유지) ── */
+    /* ── Footer ── */
     .site-footer { position: relative; z-index: 10; flex-shrink: 0; background: linear-gradient(180deg, rgba(255,248,236,0.9) 0%, #FFFDF9 100%); border-top: 1px solid rgba(255,165,0,0.25); display: flex; flex-direction: column; align-items: center; }
     .footer-inner { width: 100%; max-width: 1100px; padding: 0 24px; }
     .footer-main { padding: 32px 0; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
@@ -168,7 +168,7 @@
       <div class="header-row2">
         <nav>
           <a href="index.html">홈</a>
-          <a href="sunday.html">썬데이 예측</a>
+          <a href="sunday.html" class="active">썬데이 예측</a>
           <a href="board.html">정보센터</a>
         </nav>
         <div class="header-search">
@@ -212,7 +212,28 @@
         </table>
       </div>
 
-    </div>
+      <div class="page-header" style="margin-top: 40px; margin-bottom: 30px;">
+        <h2 class="page-title" style="font-size: 1.8rem; background: linear-gradient(135deg, #FF8C00, #F0A500); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">최근 진행된 썬데이 메이플</h2>
+        <p class="page-desc">최근 몇 주간 진행되었던 썬데이 메이플 혜택입니다.</p>
+      </div>
+
+      <div class="table-card" style="margin-bottom: 0;">
+        <table class="pred-table">
+          <thead>
+            <tr>
+              <th style="width: 140px; text-align: center;">날짜</th>
+              <th class="col-benefit">썬데이 메이플 혜택</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in recentSundays" :key="item.date">
+              <td style="text-align: center; color: rgba(92,46,0,0.7); font-weight: 700;">{{ item.date }}</td>
+              <td class="col-benefit" style="font-weight: 500 !important;">{{ item.benefit }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
   </div>
 
   <footer class="site-footer">
@@ -260,19 +281,22 @@ createApp({
   setup() {
     const searchKeyword = ref('');
     
-    // 사진에 있던 데이터를 그대로 하드코딩 해두었습니다. 
-    // 나중에 FastAPI 백엔드에서 통신해서 데이터를 교체하시면 됩니다!
+    // 예측 데이터 (기존 하드코딩 데이터 유지)
     const predictions = ref([
       { rank: 1, probability: '51.8%', benefit: '21성 이하에서 스타포스 강화 시 파괴 확률 30% 감소 (샤이닝)', note: '28일 경과' },
       { rank: 2, probability: '40.2%', benefit: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가', note: '21일 경과' },
       { rank: 3, probability: '37.1%', benefit: '몬스터 파크 클리어 경험치 추가 250%', note: '7일 경과' },
       { rank: 4, probability: '35.1%', benefit: '콤보킬 경험치 획득량 +300%', note: '42일 경과' },
       { rank: 5, probability: '29.0%', benefit: '룬 경험치 버프 효과 +100%', note: '42일 경과' },
-      { rank: 6, probability: '28.7%', benefit: '사냥 시 소환되는 엘리트 몬스터 수 증가 (1마리 → 3마리)', note: '21일 경과' },
-      { rank: 7, probability: '25.5%', benefit: '몬스터 컬렉션 신규 몬스터 등록 확률 추가 100%', note: '21일 경과' },
-      { rank: 8, probability: '25.2%', benefit: '주문의 흔적 강화 비용 50% 할인', note: '63일 경과' },
-      { rank: 9, probability: '21.3%', benefit: '룬 재등장 및 재사용 대기시간 감소', note: '42일 경과' },
-      { rank: 10, probability: '18.7%', benefit: '소울 조각 사용 시 위대한 소울 획득 확률 5배', note: '7일 경과' },
+    ]);
+
+    // 최근 진행된 썬데이 목록 데이터 추가 (API 연동 전 임시 하드코딩)
+    const recentSundays = ref([
+      { date: '4월 12일', benefit: '몬스터 파크 클리어 경험치 추가 250%, 소울 조각 사용 시 위대한 소울 획득 확률 5배' },
+      { date: '4월 5일', benefit: '어빌리티 재설정 비용 50% 할인, V 매트릭스 코어 젬스톤 획득 확률 2배' },
+      { date: '3월 29일', benefit: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가, 몬스터 컬렉션 등록 확률 100% 추가' },
+      { date: '3월 22일', benefit: '스타포스 5, 10, 15성에서 강화 시 성공 확률 100%' },
+      { date: '3월 15일', benefit: '21성 이하에서 스타포스 강화 시 파괴 확률 30% 감소 (샤이닝)' },
     ]);
 
     function reSearch() {
@@ -282,7 +306,7 @@ createApp({
       }
     }
 
-    return { searchKeyword, predictions, reSearch };
+    return { searchKeyword, predictions, recentSundays, reSearch };
   }
 }).mount('#app');
 </script>
