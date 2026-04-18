@@ -171,6 +171,14 @@ class JobSkillUi(BaseModel):
     skillEffect: str = ""
 
 
+class LinkSkillPresetUi(BaseModel):
+    model_config = _MODEL
+
+    presetNo: int = 0
+    ownedSkill: list[JobSkillUi] = Field(default_factory=list)
+    skills: list[JobSkillUi] = Field(default_factory=list)
+
+
 class JobSkillSixthCategorySectionUi(BaseModel):
     model_config = _MODEL
 
@@ -250,4 +258,5 @@ class CharacterResponse(BaseModel):
     hexaMatrixStat: HexaMatrixStatUi = Field(default_factory=HexaMatrixStatUi)
     jobSkillSixth: JobSkillSixthBundle = Field(default_factory=JobSkillSixthBundle)
     jobSkillFifth: JobSkillFifthBundle = Field(default_factory=JobSkillFifthBundle)
+    linkSkillPresets: list[LinkSkillPresetUi] = Field(default_factory=list)
     union: UnionResponse | None = None

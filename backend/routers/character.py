@@ -22,6 +22,7 @@ from schemas.character_all import (
     JobSkillSixthBundle,
     JobSkillSixthCategorySectionUi,
     JobSkillUi,
+    LinkSkillPresetUi,
     SetEffectUi,
     UnionArtifactCrystalRow,
     UnionArtifactEffectRow,
@@ -37,6 +38,7 @@ from services.nexon_api import (
     fetch_character_basic,
     fetch_character_hexamatrix,
     fetch_character_hexamatrix_stat,
+    fetch_character_link_skill,
     fetch_character_popularity,
     fetch_character_skill,
     fetch_character_stat,
@@ -77,6 +79,7 @@ _NEXON_FETCH_NAMES = (
     "hexamatrix_stat",
     "hexamatrix",
     "vmatrix",
+    "link_skill",
 )
 
 _EQUIP_SLOTS: tuple[str, ...] = (
@@ -759,6 +762,44 @@ def _slim_skill_api_row(row: dict) -> dict[str, Any]:
     }
 
 
+def _job_skill_ui_list_from_any(v: Any) -> list[JobSkillUi]:
+    if v is None:
+        return []
+    rows: list[Any] = [v] if isinstance(v, dict) else (v if isinstance(v, list) else [])
+    out: list[JobSkillUi] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        slim = _slim_skill_api_row(row)
+        if not _norm_skill_key(str(slim.get("skillName") or "")):
+            continue
+        out.append(JobSkillUi.model_validate(slim))
+    return out
+
+
+def _link_skill_presets_ui(link_raw: dict) -> list[LinkSkillPresetUi]:
+    presets: list[LinkSkillPresetUi] = []
+    for i in (1, 2, 3):
+        owned = _nget(
+            link_raw,
+            f"character_owned_link_skill_preset_{i}",
+            f"characterOwnedLinkSkillPreset{i}",
+        )
+        skills = _nget(
+            link_raw,
+            f"character_link_skill_preset_{i}",
+            f"characterLinkSkillPreset{i}",
+        )
+        presets.append(
+            LinkSkillPresetUi(
+                presetNo=i,
+                ownedSkill=_job_skill_ui_list_from_any(owned),
+                skills=_job_skill_ui_list_from_any(skills),
+            )
+        )
+    return presets
+
+
 def _hexa_stat_line(name_raw: Any, level_raw: Any) -> HexaStatLineUi | None:
     name = str(name_raw or "").strip()
     if not name:
@@ -1138,6 +1179,7 @@ async def get_character_info(nickname: str):
             batch4 = await asyncio.gather(
                 fetch_character_hexamatrix(client, ocid, yesterday),
                 fetch_character_vmatrix(client, ocid, yesterday),
+                fetch_character_link_skill(client, ocid, yesterday),
                 return_exceptions=True,
             )
             results = list(batch1) + [
@@ -1187,8 +1229,10 @@ async def get_character_info(nickname: str):
     hexa_raw = pick(13)
     hexa_matrix_raw = pick(14)
     vmatrix_raw = pick(15)
+    link_skill_raw = pick(16)
     job_sixth = _job_skill_sixth_bundle(skill6_raw, hexa_matrix_raw)
     job_fifth = _job_skill_fifth_bundle(skill5_raw, vmatrix_raw)
+    link_skill_presets = _link_skill_presets_ui(link_skill_raw)
     hexa_matrix_stat = _hexa_matrix_stat_ui(hexa_raw)
 
     item_equipment_equips = _sorted_equips_from_rows(_equip_rows(equip_data))
@@ -1258,5 +1302,6 @@ async def get_character_info(nickname: str):
         hexaMatrixStat=hexa_matrix_stat,
         jobSkillSixth=job_sixth,
         jobSkillFifth=job_fifth,
+        linkSkillPresets=link_skill_presets,
         union=union_detail,
     )

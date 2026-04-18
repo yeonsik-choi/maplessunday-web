@@ -158,6 +158,18 @@ async def fetch_character_vmatrix(
     )
 
 
+async def fetch_character_link_skill(
+    client: httpx.AsyncClient, ocid: str, date: str
+) -> dict:
+    return await _fetch_ocid_date(
+        client,
+        "character/link-skill",
+        ocid,
+        date,
+        "캐릭터 링크 스킬 조회 실패",
+    )
+
+
 async def fetch_character_ability(
     client: httpx.AsyncClient, ocid: str, date: str
 ) -> dict:
