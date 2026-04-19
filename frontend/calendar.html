@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>메이플 썬데이 - 썬데이 예측</title>
+  <title>메이플 썬데이 - 썬데이 달력</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Black+Han+Sans&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5408795886632712" crossorigin="anonymous"></script>
   <style>
     /* ── BASE ── */
     :root {
@@ -51,68 +50,122 @@
     .header-search button { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border: none; border-radius: 18px; padding: 6px 16px; color: white; font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: opacity .15s; }
     .header-search button:hover:not(:disabled) { opacity: 0.85; }
 
-    /* ── PREDICTION PAGE ── */
-    .page-prediction { flex: 1; padding: 48px 24px 80px; }
-    .pred-inner { max-width: 900px; margin: 0 auto; }
+    /* ── CALENDAR PAGE ── */
+    .page-calendar { flex: 1; padding: 48px 24px 80px; }
+    .calendar-inner { max-width: 1000px; margin: 0 auto; }
     
-    .page-header { text-align: center; margin-bottom: 40px; }
+    .page-header { text-align: center; margin-bottom: 32px; }
     .page-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem; background: linear-gradient(135deg, #FF6B00, #FF3300); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
     .page-desc { font-size: 1rem; color: rgba(92,46,0,0.7); font-weight: 500; }
 
-    .table-card {
+    /* 달력 컨테이너 */
+    .calendar-card {
       background: #fff;
       border: 1px solid rgba(255,165,0,0.25);
       border-radius: 20px;
       box-shadow: 0 12px 30px rgba(255,165,0,0.06);
-      overflow: hidden;
-      margin-bottom: 60px;
+      padding: 30px;
     }
-    .pred-table { width: 100%; border-collapse: collapse; text-align: left; }
-    .pred-table th {
-      background: linear-gradient(135deg, rgba(255,245,230,0.9), rgba(255,250,240,0.9));
-      padding: 18px 24px;
-      font-size: 0.9rem;
+
+    /* 상단 컨트롤 (연/월 선택) */
+    .calendar-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .calendar-controls button {
+      background: #fff;
+      border: 1.5px solid rgba(255,165,0,0.4);
       color: var(--maple-orange);
-      font-weight: 800;
-      border-bottom: 2px solid rgba(255,165,0,0.2);
-      white-space: nowrap;
+      font-size: 1.2rem;
+      font-weight: 900;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s;
     }
-    .pred-table td {
-      padding: 16px 24px;
-      border-bottom: 1px solid rgba(0,0,0,0.06);
-      font-size: 0.92rem;
+    .calendar-controls button:hover {
+      background: rgba(255,165,0,0.1);
+      border-color: var(--maple-orange);
+      transform: scale(1.05);
+    }
+    .current-month {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.8rem;
       color: var(--maple-brown);
-      font-weight: 500;
-      vertical-align: middle;
-      transition: background 0.2s;
+      min-width: 160px;
+      text-align: center;
     }
-    .pred-table tbody tr:hover td { background: rgba(255,165,0,0.03); }
-    .pred-table tbody tr:last-child td { border-bottom: none; }
 
-    /* 테이블 요소 꾸미기 */
-    .col-rank { width: 80px; text-align: center; }
-    .col-prob { width: 120px; }
-    .col-benefit { min-width: 300px; font-weight: 700 !important; }
-    .col-note { width: 140px; color: rgba(92,46,0,0.6) !important; font-size: 0.85rem !important; }
-
-    .rank-badge {
-      display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center;
-      border-radius: 50%; background: #F5F5F5; font-weight: 900; font-family: 'Black Han Sans', sans-serif;
-      font-size: 0.95rem; color: #777;
+    /* 달력 그리드 */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: rgba(255,165,0,0.15);
+      border: 1px solid rgba(255,165,0,0.15);
+      border-radius: 12px;
+      overflow: hidden;
     }
-    .rank-1 { background: linear-gradient(135deg, #FFD700, #FFA500); color: #fff; box-shadow: 0 2px 8px rgba(255,215,0,0.4); }
-    .rank-2 { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); color: #fff; box-shadow: 0 2px 8px rgba(158,158,158,0.4); }
-    .rank-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff; box-shadow: 0 2px 8px rgba(160,82,45,0.4); }
 
-    .prob-pill {
-      display: inline-block;
-      background: rgba(231, 76, 60, 0.1);
-      color: #E74C3C;
-      padding: 6px 12px;
-      border-radius: 14px;
+    .weekday {
+      background: rgba(255,248,236,1);
+      text-align: center;
+      padding: 12px 0;
       font-weight: 800;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
+      font-size: 0.95rem;
+      color: var(--maple-brown);
+    }
+    .weekday.sun { color: #E74C3C; }
+    .weekday.sat { color: #3498DB; }
+
+    .day-cell {
+      background: #fff;
+      min-height: 120px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .day-cell.empty {
+      background: #FAFAFA;
+      color: rgba(0,0,0,0.2);
+    }
+    
+    .date-num {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--maple-brown);
+      align-self: flex-start;
+    }
+    .day-cell:nth-child(7n + 1) .date-num { color: #E74C3C; } /* 일요일 날짜 색상 */
+    .day-cell:nth-child(7n) .date-num { color: #3498DB; } /* 토요일 날짜 색상 */
+    .day-cell.empty .date-num { color: rgba(0,0,0,0.2) !important; }
+
+    /* 썬데이(일요일) 하이라이트 스타일 */
+    .day-cell.sunday {
+      background: rgba(255,165,0,0.03);
+    }
+    .sunday-data-box {
+      flex: 1;
+      background: rgba(255, 140, 66, 0.1);
+      border: 1px dashed rgba(255, 140, 66, 0.4);
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 0.75rem;
+      color: var(--maple-orange);
+      font-weight: 700;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: keep-all;
     }
 
     /* ── Footer ── */
@@ -133,8 +186,12 @@
     .footer-bottom-links a:hover { color: var(--maple-orange); }
 
     @media (max-width: 820px) { .footer-main { grid-template-columns: 1fr 1fr; gap: 24px; } }
-    @media (max-width: 600px) { .header-inner { padding: 0 14px; } .footer-inner { padding: 0 16px; } .footer-bottom { flex-direction: column; align-items: flex-start; } .pred-table th, .pred-table td { padding: 12px 16px; font-size: 0.85rem; } .prob-pill { padding: 4px 8px; } }
-    @media (max-width: 500px) { .footer-main { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { 
+      .calendar-card { padding: 16px; }
+      .day-cell { min-height: 80px; padding: 6px; }
+      .sunday-data-box { font-size: 0.65rem; padding: 4px; }
+      .current-month { font-size: 1.4rem; min-width: 120px; }
+    }
   </style>
 </head>
 <body>
@@ -180,61 +237,46 @@
     </div>
   </header>
 
-  <div class="page-prediction">
-    <div class="pred-inner">
+  <div class="page-calendar">
+    <div class="calendar-inner">
       
       <div class="page-header">
-        <h1 class="page-title">이번 주 썬데이 메이플 예측</h1>
-        <p class="page-desc">과거 등장 주기 데이터를 분석하여 다가오는 썬데이 메이플 혜택을 예측합니다.</p>
+        <h1 class="page-title">썬데이 달력</h1>
+        <p class="page-desc">과거부터 현재까지 진행된 썬데이 메이플 내역을 확인해보세요.</p>
       </div>
 
-      <div class="table-card">
-        <table class="pred-table">
-          <thead>
-            <tr>
-              <th class="col-rank">순위</th>
-              <th class="col-prob">예측 확률</th>
-              <th class="col-benefit">썬데이 메이플 혜택</th>
-              <th class="col-note">비고 (마지막 등장 후)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in predictions" :key="item.rank">
-              <td class="col-rank">
-                <span class="rank-badge" :class="'rank-' + item.rank">{{ item.rank }}</span>
-              </td>
-              <td class="col-prob">
-                <span class="prob-pill">{{ item.probability }}</span>
-              </td>
-              <td class="col-benefit">{{ item.benefit }}</td>
-              <td class="col-note">{{ item.note }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="calendar-card">
+        <div class="calendar-controls">
+          <button @click="prevMonth">&lt;</button>
+          <div class="current-month">{{ currentYear }}년 {{ currentMonth }}월</div>
+          <button @click="nextMonth">&gt;</button>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="weekday sun">일</div>
+          <div class="weekday">월</div>
+          <div class="weekday">화</div>
+          <div class="weekday">수</div>
+          <div class="weekday">목</div>
+          <div class="weekday">금</div>
+          <div class="weekday sat">토</div>
+
+          <div 
+            class="day-cell" 
+            v-for="(day, index) in calendarDays" 
+            :key="index"
+            :class="{ 'empty': !day.isCurrentMonth, 'sunday': day.dayOfWeek === 0 && day.isCurrentMonth }"
+          >
+            <span class="date-num">{{ day.dateNum }}</span>
+            
+            <div class="sunday-data-box" v-if="day.dayOfWeek === 0 && day.isCurrentMonth">
+              데이터 추가 예정
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="page-header" style="margin-top: 40px; margin-bottom: 30px;">
-        <h2 class="page-title" style="font-size: 1.8rem; background: linear-gradient(135deg, #FF8C00, #F0A500); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">최근 진행된 썬데이 메이플</h2>
-        <p class="page-desc">최근 몇 주간 진행되었던 썬데이 메이플 혜택입니다.</p>
-      </div>
-
-      <div class="table-card" style="margin-bottom: 0;">
-        <table class="pred-table">
-          <thead>
-            <tr>
-              <th style="width: 140px; text-align: center;">날짜</th>
-              <th class="col-benefit">썬데이 메이플 혜택</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in recentSundays" :key="item.date">
-              <td style="text-align: center; color: rgba(92,46,0,0.7); font-weight: 700;">{{ item.date }}</td>
-              <td class="col-benefit" style="font-weight: 500 !important;">{{ item.benefit }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      </div>
+    </div>
   </div>
 
   <footer class="site-footer">
@@ -250,7 +292,10 @@
         </div>
         <div class="footer-col">
           <div class="footer-col-title">메뉴</div>
-          <a href="index.html">홈</a><a href="sunday.html">썬데이 예측</a><a href="board.html">정보센터</a>
+          <a href="index.html">홈</a>
+          <a href="calendar.html">썬데이 달력</a>
+          <a href="sunday.html">썬데이 예측</a>
+          <a href="board.html">정보센터</a>
         </div>
         <div class="footer-col">
           <div class="footer-col-title">문의 &amp; 지원</div>
@@ -276,29 +321,80 @@
 </div>
 
 <script>
-const { createApp, ref } = Vue;
+const { createApp, ref, computed, onMounted } = Vue;
 
 createApp({
   setup() {
     const searchKeyword = ref('');
     
-    // 예측 데이터 (기존 하드코딩 데이터 유지)
-    const predictions = ref([
-      { rank: 1, probability: '51.8%', benefit: '21성 이하에서 스타포스 강화 시 파괴 확률 30% 감소 (샤이닝)', note: '28일 경과' },
-      { rank: 2, probability: '40.2%', benefit: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가', note: '21일 경과' },
-      { rank: 3, probability: '37.1%', benefit: '몬스터 파크 클리어 경험치 추가 250%', note: '7일 경과' },
-      { rank: 4, probability: '35.1%', benefit: '콤보킬 경험치 획득량 +300%', note: '42일 경과' },
-      { rank: 5, probability: '29.0%', benefit: '룬 경험치 버프 효과 +100%', note: '42일 경과' },
-    ]);
+    // 현재 날짜 상태
+    const today = new Date();
+    const currentYear = ref(today.getFullYear());
+    const currentMonth = ref(today.getMonth() + 1);
 
-    // 최근 진행된 썬데이 목록 데이터 추가 (API 연동 전 임시 하드코딩)
-    const recentSundays = ref([
-      { date: '4월 12일', benefit: '몬스터 파크 클리어 경험치 추가 250%, 소울 조각 사용 시 위대한 소울 획득 확률 5배' },
-      { date: '4월 5일', benefit: '어빌리티 재설정 비용 50% 할인, V 매트릭스 코어 젬스톤 획득 확률 2배' },
-      { date: '3월 29일', benefit: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가, 몬스터 컬렉션 등록 확률 100% 추가' },
-      { date: '3월 22일', benefit: '스타포스 5, 10, 15성에서 강화 시 성공 확률 100%' },
-      { date: '3월 15일', benefit: '21성 이하에서 스타포스 강화 시 파괴 확률 30% 감소 (샤이닝)' },
-    ]);
+    // 달력 날짜 계산 로직
+    const calendarDays = computed(() => {
+      const year = currentYear.value;
+      const month = currentMonth.value - 1; // JS Date의 month는 0부터 시작
+      
+      const firstDayOfMonth = new Date(year, month, 1);
+      const lastDayOfMonth = new Date(year, month + 1, 0);
+      
+      const daysInMonth = lastDayOfMonth.getDate();
+      const startingDay = firstDayOfMonth.getDay(); // 0: 일, 1: 월 ...
+      
+      const days = [];
+      
+      // 이전 달 빈 칸 채우기
+      const prevMonthLastDay = new Date(year, month, 0).getDate();
+      for (let i = startingDay - 1; i >= 0; i--) {
+        days.push({
+          dateNum: prevMonthLastDay - i,
+          isCurrentMonth: false,
+          dayOfWeek: (startingDay - 1 - i) % 7
+        });
+      }
+      
+      // 이번 달 날짜 채우기
+      for (let i = 1; i <= daysInMonth; i++) {
+        const dayOfWeek = new Date(year, month, i).getDay();
+        days.push({
+          dateNum: i,
+          isCurrentMonth: true,
+          dayOfWeek: dayOfWeek
+        });
+      }
+      
+      // 다음 달 빈 칸 채우기 (전체 칸 수가 35칸 혹은 42칸이 되도록 유지)
+      const remainingSlots = days.length % 7 === 0 ? 0 : 7 - (days.length % 7);
+      for (let i = 1; i <= remainingSlots; i++) {
+        days.push({
+          dateNum: i,
+          isCurrentMonth: false,
+          dayOfWeek: (days[days.length - 1].dayOfWeek + 1) % 7
+        });
+      }
+      
+      return days;
+    });
+
+    function prevMonth() {
+      if (currentMonth.value === 1) {
+        currentMonth.value = 12;
+        currentYear.value--;
+      } else {
+        currentMonth.value--;
+      }
+    }
+
+    function nextMonth() {
+      if (currentMonth.value === 12) {
+        currentMonth.value = 1;
+        currentYear.value++;
+      } else {
+        currentMonth.value++;
+      }
+    }
 
     function reSearch() {
       const name = searchKeyword.value.trim();
@@ -307,7 +403,15 @@ createApp({
       }
     }
 
-    return { searchKeyword, predictions, recentSundays, reSearch };
+    return { 
+      searchKeyword,
+      currentYear,
+      currentMonth,
+      calendarDays,
+      prevMonth,
+      nextMonth,
+      reSearch 
+    };
   }
 }).mount('#app');
 </script>
