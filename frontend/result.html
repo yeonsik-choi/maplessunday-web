@@ -540,6 +540,7 @@
             <div class="preset-btns">
                <button class="preset-btn" style="width: auto; padding: 0 12px;" :class="{ active: activeSkillTab === '6' }" @click="activeSkillTab = '6'">6차</button>
                <button class="preset-btn" style="width: auto; padding: 0 12px;" :class="{ active: activeSkillTab === '5' }" @click="activeSkillTab = '5'">5차</button>
+               <button class="preset-btn" style="width: auto; padding: 0 12px;" :class="{ active: activeSkillTab === 'link' }" @click="activeSkillTab = 'link'">링크</button>
             </div>
           </div>
 
@@ -625,6 +626,35 @@
               </template>
             </div>
             <div v-if="!char.jobSkillFifth || !char.jobSkillFifth.sections || char.jobSkillFifth.sections.length === 0" style="text-align: center; padding: 40px; color: #888;">5차 스킬 정보가 없습니다.</div>
+          </div>
+
+          <div class="skill-container" v-if="activeSkillTab === 'link'">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+              <div class="preset-btns">
+                <button class="preset-btn" :class="{ active: activeLinkPreset === '1' }" @click="activeLinkPreset = '1'">1</button>
+                <button class="preset-btn" :class="{ active: activeLinkPreset === '2' }" @click="activeLinkPreset = '2'">2</button>
+                <button class="preset-btn" :class="{ active: activeLinkPreset === '3' }" @click="activeLinkPreset = '3'">3</button>
+              </div>
+            </div>
+            
+            <div class="skill-grid">
+              <template v-if="char.linkSkillPresets && char.linkSkillPresets.length > 0">
+                <template v-for="preset in char.linkSkillPresets" :key="preset.presetNo">
+                  <template v-if="String(preset.presetNo) === activeLinkPreset">
+                    <div class="skill-item" v-for="skill in preset.skills" :key="skill.skillName" @click="openSkillTooltip(skill)">
+                      <div class="skill-icon-wrap">
+                        <img :src="skill.skillIcon" class="skill-icon-img" :alt="skill.skillName">
+                      </div>
+                      <div class="skill-info">
+                        <div class="skill-name">{{ skill.skillName }}</div>
+                        <div class="skill-level">Lv.{{ skill.skillLevel }}</div>
+                      </div>
+                    </div>
+                  </template>
+                </template>
+              </template>
+            </div>
+            <div v-if="!char.linkSkillPresets || char.linkSkillPresets.length === 0" style="text-align: center; padding: 40px; color: #888;">링크 스킬 정보가 없습니다.</div>
           </div>
         </div>
 
@@ -870,6 +900,7 @@ createApp({
     const activeEquipPreset = ref('1');
     const activeUnionPreset = ref('1'); 
     const activeSkillTab = ref('6');
+    const activeLinkPreset = ref('1');
 
     const expandedSetIdx = ref(null);
 
@@ -1096,7 +1127,7 @@ createApp({
 
     return { 
       searchKeyword, currentName, loading, error, char, tab, 
-      activeAbilityPreset, activeEquipPreset, activeUnionPreset, activeSkillTab, reSearch,
+      activeAbilityPreset, activeEquipPreset, activeUnionPreset, activeSkillTab, activeLinkPreset, reSearch,
       
       selectedEquip, selectedSkill, openTooltip, closeTooltip, openSkillTooltip, closeSkillTooltip,
       getGradeColor, getGradeIcon, renderStatLine, renderPercentStatLine,
