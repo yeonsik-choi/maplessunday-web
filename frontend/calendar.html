@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=1200" />
   <title>메이플 썬데이 - 썬데이 달력</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -185,13 +185,6 @@
     .footer-bottom-links a { font-size: 0.72rem; color: rgba(92,46,0,0.6); font-weight: 700; text-decoration: none; transition: color .2s; }
     .footer-bottom-links a:hover { color: var(--maple-orange); }
 
-    @media (max-width: 820px) { .footer-main { grid-template-columns: 1fr 1fr; gap: 24px; } }
-    @media (max-width: 600px) { 
-      .calendar-card { padding: 16px; }
-      .day-cell { min-height: 80px; padding: 6px; }
-      .sunday-data-box { font-size: 0.65rem; padding: 4px; }
-      .current-month { font-size: 1.4rem; min-width: 120px; }
-    }
   </style>
 </head>
 <body>

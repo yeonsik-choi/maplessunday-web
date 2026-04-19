@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=1200" />
   <title>메이플 썬데이 - 캐릭터 정보</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,11 +171,9 @@
     .equip-potential span { display: block; word-break: keep-all; }
     
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-    @media (max-width: 580px) { .two-col { grid-template-columns: 1fr; } }
 
     /* ── 스탯/장비 탭 좌우 분할 레이아웃 ── */
     .stats-equip-layout { display: grid; grid-template-columns: 340px 1fr; gap: 18px; align-items: start; }
-    @media (max-width: 900px) { .stats-equip-layout { grid-template-columns: 1fr; } }
     .stats-left-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
     .combat-power-card { background: linear-gradient(135deg, rgba(255,107,0,0.12), rgba(255,215,0,0.08)); border: 1.5px solid rgba(255,165,0,0.4); border-radius: 16px; padding: 20px; box-shadow: 0 6px 20px rgba(255,107,0,0.1); }
     .combat-power-label { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: rgba(92,46,0,0.55); margin-bottom: 4px; letter-spacing: 0.8px; }
@@ -217,7 +215,6 @@
     /* ── 헥사 스탯 스타일 추가 ── */
     .hexa-stat-container { margin-top: 32px; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 24px; }
     .hexa-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    @media (max-width: 800px) { .hexa-stat-grid { grid-template-columns: 1fr; } }
     .hexa-stat-card { display: flex; flex-direction: column; gap: 8px; }
     .hexa-stat-header { font-size: 0.9rem; font-weight: 800; color: #7899A6; margin-bottom: 4px; padding-left: 4px; }
     .hexa-stat-body { display: flex; flex-direction: column; gap: 6px; }
@@ -266,7 +263,6 @@
     .union-preset-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,165,0,0.3); background: #fff; font-size: 0.8rem; font-weight: 700; color: rgba(92,46,0,0.6); cursor: pointer; transition: all 0.2s; }
     .union-preset-btn.active { background: var(--maple-orange); color: #fff; border-color: var(--maple-orange); box-shadow: 0 3px 8px rgba(255,107,0,0.25); }
     .union-raider-content { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
-    @media (max-width: 800px) { .union-raider-content { grid-template-columns: 1fr; } }
     .union-block-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; align-content: start; }
     .union-block-item { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px; padding: 12px 10px; display: flex; flex-direction: column; gap: 4px; transition: transform 0.15s; }
     .union-block-item:hover { transform: translateY(-2px); border-color: rgba(255,165,0,0.3); }
@@ -279,18 +275,13 @@
     .union-effect-ul li { font-size: 0.8rem; color: rgba(92,46,0,0.75); display: flex; gap: 6px; }
     .union-effect-ul li::before { content: '•'; color: var(--maple-orange); font-weight: bold; }
     .artifact-layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
-    @media (max-width: 800px) { .artifact-layout { grid-template-columns: 1fr; } }
     .artifact-crystals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-content: start; }
-    @media (max-width: 600px) { .artifact-crystals { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 400px) { .artifact-crystals { grid-template-columns: 1fr; } }
     .artifact-crystal-card { background: #F4F7FF; border: 1px solid #D6E0FF; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
     .artifact-stars { color: #8C9EFF; font-size: 0.8rem; letter-spacing: 2px; }
     .artifact-options { display: flex; flex-direction: column; gap: 4px; width: 100%; }
     .artifact-opt { background: #fff; padding: 5px 6px; border-radius: 4px; font-size: 0.75rem; color: #3949AB; font-weight: 700; border: 1px solid rgba(57,73,171,0.1); }
     .champion-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-    @media (max-width: 800px) { .champion-layout { grid-template-columns: 1fr; } }
     .champion-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    @media (max-width: 500px) { .champion-list { grid-template-columns: repeat(2, 1fr); } }
     .champion-card { background: linear-gradient(135deg, #1E293B, #334155); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px 18px; color: #F8FAFC; position: relative; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); min-height: 110px; display: flex; flex-direction: column; justify-content: center; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
     .champion-card:hover:not(.empty) { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 165, 0, 0.15); border-color: rgba(255, 165, 0, 0.5); }
     .champion-card::before { content: ''; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(255,165,0,0.15) 0%, transparent 70%); pointer-events: none; }
@@ -318,9 +309,6 @@
     .footer-bottom-links { display: flex; gap: 16px; }
     .footer-bottom-links a { font-size: 0.72rem; color: rgba(92,46,0,0.6); font-weight: 700; text-decoration: none; transition: color .2s; }
     .footer-bottom-links a:hover { color: var(--maple-orange); }
-    @media (max-width: 820px) { .footer-main { grid-template-columns: 1fr 1fr; gap: 24px; } }
-    @media (max-width: 600px) { .header-inner { padding: 0 14px; } .char-header { flex-direction: column; align-items: flex-start; gap: 20px; } .footer-inner { padding: 0 16px; } .footer-bottom { flex-direction: column; align-items: flex-start; } }
-    @media (max-width: 500px) { .footer-main { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
