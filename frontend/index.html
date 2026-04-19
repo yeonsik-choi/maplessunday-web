@@ -246,8 +246,8 @@
           <a href="board.html">정보센터</a>
         </nav>
         <div class="header-search">
-          <input v-model="nickname" placeholder="닉네임을 입력하세요." @keyup.enter="search" />
-          <button @click="search" :disabled="!nickname.trim()">조회</button>
+          <input v-model="headerNickname" placeholder="닉네임을 입력하세요." @keyup.enter="search(headerNickname)" />
+          <button @click="search(headerNickname)" :disabled="!headerNickname.trim()">조회</button>
         </div>
       </div>
     </div>
@@ -261,8 +261,8 @@
     <div class="search-card">
       <span class="search-label">캐릭터 닉네임</span>
       <div class="search-row">
-        <input class="search-input" v-model="nickname" placeholder="닉네임을 입력하세요." @keyup.enter="search" />
-        <button class="search-btn" @click="search" :disabled="!nickname.trim()">조회</button>
+        <input class="search-input" v-model="mainNickname" placeholder="닉네임을 입력하세요." @keyup.enter="search(mainNickname)" />
+        <button class="search-btn" @click="search(mainNickname)" :disabled="!mainNickname.trim()">조회</button>
       </div>
     </div>
 
@@ -381,7 +381,9 @@ const { createApp, ref, onMounted } = Vue;
 
 createApp({
   setup() {
-    const nickname = ref('');
+    // 닉네임 변수를 2개로 분리
+    const headerNickname = ref('');
+    const mainNickname = ref('');
     
     // 데이터를 담을 빈 배열 생성
     const noticeList = ref([]);
@@ -408,8 +410,9 @@ createApp({
       }
     });
 
-    function search() {
-      const name = nickname.value.trim();
+    // 어떤 입력창에서 검색했는지 값을 전달받아 처리하도록 수정
+    function search(targetNickname) {
+      const name = targetNickname.trim();
       if (name) {
         window.location.href = `result.html?name=${encodeURIComponent(name)}`;
       }
@@ -437,7 +440,8 @@ createApp({
     }
 
     return { 
-      nickname, 
+      headerNickname,
+      mainNickname,
       search,
       noticeList,
       updateList,
