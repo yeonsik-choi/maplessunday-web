@@ -241,7 +241,7 @@
           <a href="board.html">소식</a>
         </nav>
         <div class="header-search">
-          <input v-model="headerNickname" placeholder="닉네임을 입력하세요." @keyup.enter="search(headerNickname)" />
+          <input v-model="headerNickname" placeholder="닉네임 검색" @keyup.enter="search(headerNickname)" />
           <button @click="search(headerNickname)" :disabled="!headerNickname.trim()">조회</button>
         </div>
       </div>
@@ -256,7 +256,7 @@
     <div class="search-card">
       <span class="search-label">캐릭터 닉네임</span>
       <div class="search-row">
-        <input class="search-input" v-model="mainNickname" placeholder="닉네임을 입력하세요." @keyup.enter="search(mainNickname)" />
+        <input class="search-input" v-model="mainNickname" placeholder="닉네임 검색" @keyup.enter="search(mainNickname)" />
         <button class="search-btn" @click="search(mainNickname)" :disabled="!mainNickname.trim()">조회</button>
       </div>
     </div>
