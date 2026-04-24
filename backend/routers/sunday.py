@@ -12,7 +12,7 @@ router = APIRouter(prefix="/api/sunday", tags=["sunday"])
     "/history/recent",
     response_model=SundayRecentWithPredictionResponse,
     summary="최근 N주 썬데이 이력 + 최신 예측",
-    description="홈 페이지. 앞부분은 Supabase predictions 최신 1건 상위 K, 뒤는 ssunday 최근 N주.",
+    description="홈 페이지. 응답 순서: prediction(최신 1건 상위 K) → history(ssunday 최근 N주).",
 )
 def get_recent_history(
     limit: int = Query(6, ge=1, le=52, description="조회할 주 수 (ssunday)"),

@@ -22,10 +22,16 @@ class SundayPredictionRankItem(BaseModel):
     last_seen_text: str
 
 
-class SundayRecentWithPredictionResponse(BaseModel):
-    """홈: 최신 predictions 블록 + 최근 N주 ssunday 이력."""
+class SundayPredictionBlock(BaseModel):
+    """예측 한 건 (Supabase predictions 최신 1건 기준)."""
 
     target_date: Optional[str] = Field(None, description="예측 대상 일요일 YYYY-MM-DD")
     top_k: int
     predictions: List[SundayPredictionRankItem]
+
+
+class SundayRecentWithPredictionResponse(BaseModel):
+    """홈: JSON·스키마 순서 = 예측 블록 먼저, 최근 N주 이력 나중."""
+
+    prediction: SundayPredictionBlock
     history: List[SundayHistoryItem]

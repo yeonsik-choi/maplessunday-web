@@ -6,6 +6,7 @@ from constants.sunday_prediction import CATEGORY_EVENT_NAME, CATEGORY_TAGS
 from core.supabase_client import get_supabase
 from schemas.sunday import (
     SundayHistoryItem,
+    SundayPredictionBlock,
     SundayPredictionRankItem,
     SundayRecentWithPredictionResponse,
 )
@@ -144,9 +145,11 @@ def fetch_recent_with_prediction(
         )
 
     return SundayRecentWithPredictionResponse(
-        target_date=target_date,
-        top_k=k,
-        predictions=predictions,
+        prediction=SundayPredictionBlock(
+            target_date=target_date,
+            top_k=k,
+            predictions=predictions,
+        ),
         history=history,
     )
 
