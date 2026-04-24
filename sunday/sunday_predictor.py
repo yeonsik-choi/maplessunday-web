@@ -1232,7 +1232,7 @@ if __name__ == "__main__":
             "  SUNDAY_CATBOOST_ITERATIONS=80\n"
             "  SUNDAY_PREDICT_TOP_K=3   # predict 유력 후보 개수(백테 Top-3와 맞추려면 3)\n"
             "  SUNDAY_SPW_MAX=2        # scale_pos_weight 상한 (CatBoost 체인만)\n"
-            "  → cd sunday_predict && .venv/bin/python sunday_predictor.py backtest --verbose\n"
+            "  → cd sunday && .venv/bin/python sunday_predictor.py backtest --verbose\n"
             "  또는 ./run_backtest_sample.sh"
         )
         sys.exit(0)

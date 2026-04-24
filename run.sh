@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# 썬데이 예측기 공용 진입점 (팀 확인용). sunday_predict/.venv 권장.
+# 썬데이 예측기 공용 진입점 (팀 확인용). sunday/.venv 권장.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-cd "$ROOT/sunday_predict"
+cd "$ROOT/sunday"
 
 PY=".venv/bin/python"
 if [[ ! -x "$PY" ]]; then
@@ -22,7 +22,7 @@ usage() {
     last12           최근 12주 표 (날짜·Top-3·실제·Hit·confidence)
 
     환경변수 예: SUNDAY_CATBOOST_ITERATIONS, SUNDAY_WF_LAST_N, SUNDAY_PREDICT_TOP_K
-    add는 CSV/인자 형식이 있어 CLI 직접: cd sunday_predict && .venv/bin/python sunday_predictor.py add …
+    add는 CSV/인자 형식이 있어 CLI 직접: cd sunday && .venv/bin/python sunday_predictor.py add …
 EOF
 }
 
