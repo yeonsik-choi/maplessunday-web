@@ -1,6 +1,6 @@
 """썬데이 예측 API용: 카테고리→태그(이력 조회)·표시 문구.
 
-sunday/features.py ALL_CATEGORIES와 동기 유지."""
+sunday_predict/features.py ALL_CATEGORIES와 동기 유지."""
 from __future__ import annotations
 
 # 카테고리 → ssunday 태그 컬럼명 (해당 태그 중 하나라도 1이면 그 주에 카테고리 출현)
