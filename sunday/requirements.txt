@@ -1,0 +1,6 @@
+# 썬데이 예측 CLI (sunday_predictor.py)
+numpy>=1.24
+catboost>=1.2
+python-dotenv>=1.0
+scikit-learn>=1.3
+supabase>=2.0
