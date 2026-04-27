@@ -144,11 +144,11 @@
       color: var(--maple-brown);
       align-self: flex-start;
     }
-    .day-cell:nth-child(7n + 1) .date-num { color: #E74C3C; } /* 일요일 날짜 색상 */
-    .day-cell:nth-child(7n) .date-num { color: #3498DB; } /* 토요일 날짜 색상 */
+    .day-cell:nth-child(7n + 1) .date-num { color: #E74C3C; }
+    .day-cell:nth-child(7n) .date-num { color: #3498DB; }
     .day-cell.empty .date-num { color: rgba(0,0,0,0.2) !important; }
 
-    /* 썬데이(일요일) 하이라이트 스타일 */
+    /* 썬데이(일요일) 데이터 렌더링 스타일 */
     .day-cell.sunday {
       background: rgba(255,165,0,0.03);
     }
@@ -158,14 +158,43 @@
       border: 1px dashed rgba(255, 140, 66, 0.4);
       border-radius: 6px;
       padding: 8px;
-      font-size: 0.75rem;
-      color: var(--maple-orange);
-      font-weight: 700;
-      text-align: center;
       display: flex;
       align-items: center;
       justify-content: center;
       word-break: keep-all;
+    }
+    .sunday-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+      text-align: center;
+    }
+    .sunday-event {
+      font-size: 0.75rem;
+      color: #D35400;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+    .sunday-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+    }
+    .sunday-tag {
+      background: #FF8C42;
+      color: #fff;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .sunday-empty {
+      font-size: 0.75rem;
+      color: var(--maple-orange);
+      font-weight: 700;
+      opacity: 0.6;
     }
 
     /* ── Footer ── */
@@ -232,7 +261,6 @@
 
   <div class="page-calendar">
     <div class="calendar-inner">
-      
       <div class="page-header">
         <h1 class="page-title">썬데이 달력</h1>
         <p class="page-desc">과거부터 현재까지 진행된 썬데이 메이플 내역을 확인해보세요.</p>
@@ -263,7 +291,19 @@
             <span class="date-num">{{ day.dateNum }}</span>
             
             <div class="sunday-data-box" v-if="day.dayOfWeek === 0 && day.isCurrentMonth">
-              데이터 추가 예정
+              <div v-if="day.sundayInfo" class="sunday-content">
+                <div class="sunday-event" v-if="day.sundayInfo.event && day.sundayInfo.event !== '(-)'">
+                  {{ day.sundayInfo.event }}
+                </div>
+                <div class="sunday-tags">
+                  <span class="sunday-tag" v-for="(tag, tIdx) in day.sundayInfo.active_tags" :key="tIdx">
+                    {{ tag.replace(/_/g, ' ') }}
+                  </span>
+                </div>
+              </div>
+              <div v-else class="sunday-empty">
+                데이터 없음
+              </div>
             </div>
           </div>
         </div>
@@ -276,6 +316,8 @@
     <div class="footer-inner">
       <div class="footer-main">
         <div class="footer-col">
+          <img src="1.png" alt="메이플 썬데이" style="height: 20px; margin-bottom: 12px; display: block; opacity: 0.7;">
+          
           <p style="font-size:0.72rem;line-height:1.8;opacity:0.6;">
             문의 : maplessunday@gmail.com
           </p>
@@ -284,7 +326,19 @@
             Data Based on NEXON OPEN API<br>본 서비스는 NEXON Korea와 관련이 없습니다.
           </p>
         </div>
+
+        <div class="footer-col"></div>
+        <div class="footer-col"></div>
+
+        <div class="footer-col">
+          <div class="footer-col-title">바로가기</div>
+          <a href="index.html">홈</a>
+          <a href="calendar.html">썬데이 달력</a>
+          <a href="sunday.html">썬데이 예측</a>
+          <a href="board.html">소식</a>
+        </div>
       </div>
+      
       <div class="footer-bottom">
         <p>© 2026 메이플 썬데이. All rights reserved. by 캣독 Co.</p>
       </div>
@@ -298,26 +352,47 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
   setup() {
     const searchKeyword = ref('');
+    const sundayHistory = ref([]); 
     
-    // 현재 날짜 상태
     const today = new Date();
     const currentYear = ref(today.getFullYear());
     const currentMonth = ref(today.getMonth() + 1);
 
-    // 달력 날짜 계산 로직
+    const fetchSundayHistory = async () => {
+      try {
+        // 실제 배포된 Render API 주소로 직접 연결
+        const apiUrl = 'https://openapi-web-project.onrender.com/api/sunday/history/all';
+        
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ 백엔드 데이터 로드 성공:", data); 
+          sundayHistory.value = data;
+        } else {
+          console.error('❌ 백엔드 응답 오류:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ 데이터를 가져오는 중 오류 발생:', error);
+      }
+    };
+
+    onMounted(() => {
+      fetchSundayHistory();
+    });
+
     const calendarDays = computed(() => {
       const year = currentYear.value;
-      const month = currentMonth.value - 1; // JS Date의 month는 0부터 시작
+      const month = currentMonth.value - 1; 
       
       const firstDayOfMonth = new Date(year, month, 1);
       const lastDayOfMonth = new Date(year, month + 1, 0);
       
       const daysInMonth = lastDayOfMonth.getDate();
-      const startingDay = firstDayOfMonth.getDay(); // 0: 일, 1: 월 ...
+      const startingDay = firstDayOfMonth.getDay(); 
       
       const days = [];
+      const pad = (n) => n.toString().padStart(2, '0');
       
-      // 이전 달 빈 칸 채우기
       const prevMonthLastDay = new Date(year, month, 0).getDate();
       for (let i = startingDay - 1; i >= 0; i--) {
         days.push({
@@ -330,14 +405,23 @@ createApp({
       // 이번 달 날짜 채우기
       for (let i = 1; i <= daysInMonth; i++) {
         const dayOfWeek = new Date(year, month, i).getDay();
+        const dateString = `${year}.${pad(month + 1)}.${pad(i)}`;
+        
+        // 날짜 포맷팅(예: 2026-04-19 -> 2026.04.19) 후 매핑
+        const sundayInfo = sundayHistory.value.find(item => {
+          if (!item.date) return false;
+          const normalizedDate = item.date.replace(/-/g, '.');
+          return normalizedDate === dateString;
+        });
+
         days.push({
           dateNum: i,
           isCurrentMonth: true,
-          dayOfWeek: dayOfWeek
+          dayOfWeek: dayOfWeek,
+          sundayInfo: sundayInfo || null
         });
       }
       
-      // 다음 달 빈 칸 채우기 (전체 칸 수가 35칸 혹은 42칸이 되도록 유지)
       const remainingSlots = days.length % 7 === 0 ? 0 : 7 - (days.length % 7);
       for (let i = 1; i <= remainingSlots; i++) {
         days.push({
