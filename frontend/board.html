@@ -52,11 +52,18 @@
     .header-search button { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border: none; border-radius: 18px; padding: 6px 16px; color: white; font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: opacity .15s; }
     .header-search button:hover:not(:disabled) { opacity: 0.85; }
 
-    /* ── LOADING OVERLAY ── */
-    .loading-overlay { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,253,249,0.92); backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-    .loading-overlay.show { opacity: 1; pointer-events: all; }
-    .maple-spinner { width: 62px; height: 62px; margin-bottom: 24px; border: 4px solid rgba(255,165,0,0.15); border-top: 4px solid var(--maple-orange); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ── SKELETON UI ANIMATION ── */
+    .skeleton-box {
+      background: #f0f2f5;
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s infinite linear;
+      border-radius: 8px;
+    }
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
 
     /* ── BOARD PAGE ── */
     .page-board { flex: 1; padding: 48px 24px 80px; }
@@ -159,12 +166,7 @@
     </div>
   </header>
 
-  <div class="loading-overlay" :class="{ show: loading }">
-    <div class="maple-spinner"></div>
-    <div style="font-family: 'Black Han Sans', sans-serif; font-size: 1.2rem; color: var(--maple-orange);">데이터를 불러오는 중...</div>
-  </div>
-
-  <div class="page-board" v-if="!loading">
+  <div class="page-board">
     <div class="board-inner">
       
       <div class="page-header">
@@ -179,43 +181,75 @@
         <button class="tab-btn" :class="{ active: currentTab === 'cashshop' }" @click="setTab('cashshop')">캐시샵 소식</button>
       </div>
 
-      <div v-if="currentTab === 'notice' || currentTab === 'update'" class="board-list-wrap">
-        <div class="list-header">
-          <div class="col-title">제목</div>
-          <div class="col-date">등록일</div>
+      <div v-if="loading">
+        <div v-if="currentTab === 'notice' || currentTab === 'update'" class="board-list-wrap">
+          <div class="list-header">
+            <div class="col-title">제목</div>
+            <div class="col-date">등록일</div>
+          </div>
+          <div class="list-item" v-for="i in 10" :key="i" style="cursor: default;">
+            <div class="skeleton-box" style="width: 44px; height: 22px; border-radius: 6px; margin-right: 12px; flex-shrink: 0;"></div>
+            <div class="skeleton-box" style="flex: 1; height: 18px; max-width: 60%;"></div>
+            <div class="skeleton-box" style="width: 80px; height: 16px; margin-left: 20px; flex-shrink: 0;"></div>
+          </div>
         </div>
-        
-        <a :href="item.url" class="list-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
-          <span class="badge" :class="currentTab">{{ currentTab === 'notice' ? '공지' : '업뎃' }}</span>
-          <div class="list-item-title">{{ item.title }}</div>
-          <div class="list-item-date">{{ formatDate(item.date) }}</div>
-        </a>
-        
-        <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888;">
-          등록된 게시글이 없습니다.
-        </div>
-      </div>
 
-      <div v-if="currentTab === 'event' || currentTab === 'cashshop'" class="board-grid-wrap">
-        <a :href="item.url" class="grid-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
-          <img :src="item.thumbnailUrl" class="grid-img" alt="">
-          <div class="grid-info">
-            <div class="grid-title">{{ item.title }}</div>
-            <div class="grid-meta">
-              <div class="grid-date">
-                {{ formatSimpleDate(item.startDate) }} ~ {{ formatSimpleDate(item.endDate) }}
+        <div v-if="currentTab === 'event' || currentTab === 'cashshop'" class="board-grid-wrap">
+          <div class="grid-item" v-for="i in 8" :key="i" style="cursor: default;">
+            <div class="skeleton-box" style="width: 100%; height: 140px; border-radius: 0;"></div>
+            <div class="grid-info">
+              <div>
+                <div class="skeleton-box" style="width: 85%; height: 18px; margin-bottom: 8px;"></div>
+                <div class="skeleton-box" style="width: 50%; height: 18px; margin-bottom: 12px;"></div>
               </div>
-              
-              <div v-if="item.ongoing" class="grid-dday ongoing">상시 판매</div>
-              <div v-else :class="['grid-dday', getDdayStatus(item.endDate)]">
-                {{ calculateDday(item.endDate) }}
+              <div class="grid-meta">
+                <div class="skeleton-box" style="width: 100px; height: 14px;"></div>
+                <div class="skeleton-box" style="width: 60px; height: 24px; border-radius: 6px;"></div>
               </div>
             </div>
           </div>
-        </a>
-        
-        <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888; grid-column: 1 / -1;">
-          진행중인 항목이 없습니다.
+        </div>
+      </div>
+
+      <div v-else>
+        <div v-if="currentTab === 'notice' || currentTab === 'update'" class="board-list-wrap">
+          <div class="list-header">
+            <div class="col-title">제목</div>
+            <div class="col-date">등록일</div>
+          </div>
+          
+          <a :href="item.url" class="list-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
+            <span class="badge" :class="currentTab">{{ currentTab === 'notice' ? '공지' : '업뎃' }}</span>
+            <div class="list-item-title">{{ item.title }}</div>
+            <div class="list-item-date">{{ formatDate(item.date) }}</div>
+          </a>
+          
+          <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888;">
+            등록된 게시글이 없습니다.
+          </div>
+        </div>
+
+        <div v-if="currentTab === 'event' || currentTab === 'cashshop'" class="board-grid-wrap">
+          <a :href="item.url" class="grid-item" target="_blank" v-for="(item, idx) in currentList" :key="idx">
+            <img :src="item.thumbnailUrl" class="grid-img" alt="">
+            <div class="grid-info">
+              <div class="grid-title">{{ item.title }}</div>
+              <div class="grid-meta">
+                <div class="grid-date">
+                  {{ formatSimpleDate(item.startDate) }} ~ {{ formatSimpleDate(item.endDate) }}
+                </div>
+                
+                <div v-if="item.ongoing" class="grid-dday ongoing">상시 판매</div>
+                <div v-else :class="['grid-dday', getDdayStatus(item.endDate)]">
+                  {{ calculateDday(item.endDate) }}
+                </div>
+              </div>
+            </div>
+          </a>
+          
+          <div v-if="currentList.length === 0" style="text-align:center; padding: 40px; color: #888; grid-column: 1 / -1;">
+            진행중인 항목이 없습니다.
+          </div>
         </div>
       </div>
 
