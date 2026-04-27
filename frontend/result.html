@@ -52,13 +52,18 @@
     .header-search button { background: linear-gradient(135deg, var(--maple-orange), #FF8C00); border: none; border-radius: 18px; padding: 6px 16px; color: white; font-family: 'Black Han Sans', sans-serif; font-size: 0.82rem; cursor: pointer; transition: opacity .15s; }
     .header-search button:hover:not(:disabled) { opacity: 0.85; }
 
-    /* ── LOADING OVERLAY ── */
-    .loading-overlay { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,253,249,0.92); backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-    .loading-overlay.show { opacity: 1; pointer-events: all; }
-    .maple-spinner { width: 62px; height: 62px; margin-bottom: 24px; border: 4px solid rgba(255,165,0,0.15); border-top: 4px solid var(--maple-orange); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-name { font-family: 'Black Han Sans', sans-serif; font-size: 1.5rem; background: linear-gradient(135deg, #FF6B00, #FF3300); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }
-    .loading-sub { font-size: 0.85rem; color: rgba(92,46,0,0.6); font-weight: 500; }
+    /* ── SKELETON UI ANIMATION ── */
+    .skeleton-box {
+      background: #f0f2f5;
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 100%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s infinite linear;
+      border-radius: 8px;
+    }
+    @keyframes skeleton-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
 
     /* ── RESULT PAGE ── */
     .page-result { flex: 1; padding: 32px 24px 80px; }
@@ -354,19 +359,55 @@
     </div>
   </header>
 
-  <div class="loading-overlay" :class="{ show: loading }">
-    <div class="maple-spinner"></div>
-    <div class="loading-name">{{ currentName }}</div>
-    <div class="loading-sub">캐릭터 정보를 불러오는 중…</div>
-  </div>
-
-  <div class="page-result" v-if="!loading">
+  <div class="page-result">
     <div class="result-inner">
       <a href="index.html" class="back-btn">← 다른 캐릭터 조회</a>
 
       <div v-if="error" class="error-box">{{ error }}</div>
 
-      <div v-if="char">
+      <div v-if="loading && !error">
+        <div class="char-header">
+          <div class="char-img-wrap skeleton-box" style="border: none; background-color: transparent;"></div>
+          <div class="char-info" style="gap: 12px; justify-content: center;">
+            <div class="skeleton-box" style="width: 220px; height: 38px; border-radius: 6px;"></div>
+            <div style="display: flex; gap: 8px;">
+              <div class="skeleton-box" style="width: 60px; height: 24px; border-radius: 12px;"></div>
+              <div class="skeleton-box" style="width: 60px; height: 24px; border-radius: 12px;"></div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+              <div class="skeleton-box" style="width: 90px; height: 42px; border-radius: 8px;"></div>
+              <div class="skeleton-box" style="width: 90px; height: 42px; border-radius: 8px;"></div>
+              <div class="skeleton-box" style="width: 90px; height: 42px; border-radius: 8px;"></div>
+            </div>
+            <div class="skeleton-box" style="width: 100%; max-width: 300px; height: 12px; border-radius: 6px; margin-top: 8px;"></div>
+          </div>
+        </div>
+
+        <div class="tab-row">
+          <div class="skeleton-box" style="width: 80px; height: 34px; border-radius: 20px;"></div>
+          <div class="skeleton-box" style="width: 80px; height: 34px; border-radius: 20px;"></div>
+          <div class="skeleton-box" style="width: 80px; height: 34px; border-radius: 20px;"></div>
+        </div>
+
+        <div class="stats-equip-layout">
+          <div class="stats-left-panel">
+            <div class="skeleton-box" style="height: 105px; border-radius: 16px;"></div>
+            <div class="skeleton-box" style="height: 200px; border-radius: 14px;"></div>
+            <div class="skeleton-box" style="height: 200px; border-radius: 14px;"></div>
+          </div>
+          <div class="equip-right-panel">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 13px;">
+              <div class="skeleton-box" style="width: 100px; height: 24px; border-radius: 6px;"></div>
+              <div class="skeleton-box" style="width: 100px; height: 24px; border-radius: 6px;"></div>
+            </div>
+            <div class="equip-grid-compact">
+              <div class="skeleton-box" style="height: 94px; border-radius: 12px;" v-for="i in 10" :key="i"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="char">
         <div class="char-header">
           <div class="char-img-wrap">
             <img class="char-avatar" :src="char.imageUrl" alt="캐릭터" />
@@ -995,7 +1036,6 @@ createApp({
       }
     }
 
-    // === 유니온 효과 문자열 자동 합산 로직 ===
     function aggregateEffects(effects) {
       if (!effects || effects.length === 0) return [];
       
