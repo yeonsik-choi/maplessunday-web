@@ -59,6 +59,53 @@
     .page-title { font-family: 'Black Han Sans', sans-serif; font-size: 2.2rem; background: linear-gradient(135deg, #FF6B00, #FF3300); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
     .page-desc { font-size: 1rem; color: rgba(92,46,0,0.7); font-weight: 500; }
 
+    /* ── 이벤트 예측 배너 ── */
+    .prediction-banner {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 36px;
+    }
+    .prediction-card {
+      flex: 1;
+      max-width: 380px;
+      background: #fff;
+      border: 2px solid rgba(255,165,0,0.2);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(255,165,0,0.08);
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .prediction-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--maple-orange);
+    }
+    /* 샤타포스 색상 (주황계열) */
+    .prediction-card.starforce .pred-title { color: #E67E22; }
+    /* 미라클 데이 색상 (보라계열로 변경) */
+    .prediction-card.miracle .pred-title { color: #8E44AD; }
+    
+    .pred-title {
+      font-family: 'Black Han Sans', sans-serif;
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .pred-date {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--maple-brown);
+      background: rgba(255,165,0,0.08);
+      padding: 8px 16px;
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    /* ── 테이블 영역 ── */
     .table-card {
       background: #fff;
       border: 1px solid rgba(255,165,0,0.25);
@@ -210,6 +257,17 @@
         </table>
       </div>
 
+      <div class="prediction-banner">
+        <div class="prediction-card starforce">
+          <div class="pred-title">다음 샤타포스 예측</div>
+          <div class="pred-date">{{ nextStarForceDate }}</div>
+        </div>
+        <div class="prediction-card miracle">
+          <div class="pred-title">다음 미라클 데이 예측</div>
+          <div class="pred-date">{{ nextMiracleDayDate }}</div>
+        </div>
+      </div>
+      
       <div class="page-header" style="margin-top: 40px; margin-bottom: 30px;">
         <h2 class="page-title" style="font-size: 1.8rem; background: linear-gradient(135deg, #FF8C00, #F0A500); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">최근 진행된 썬데이 메이플</h2>
         <p class="page-desc">최근 몇 주간 진행되었던 썬데이 메이플 혜택입니다.</p>
@@ -231,7 +289,7 @@
           </tbody>
         </table>
       </div>
-      </div>
+    </div>
   </div>
 
   <footer class="site-footer">
@@ -275,7 +333,10 @@ createApp({
   setup() {
     const searchKeyword = ref('');
     
-    // 예측 데이터 (기존 하드코딩 데이터 유지)
+    // 👇 예측 날짜 수정 가능 영역
+    const nextStarForceDate = ref('2026.07.19');
+    const nextMiracleDayDate = ref('2026.08.02');
+
     const predictions = ref([
       { rank: 1, probability: '51.8%', benefit: '21성 이하에서 스타포스 강화 시 파괴 확률 30% 감소 (샤이닝)', note: '28일 경과' },
       { rank: 2, probability: '40.2%', benefit: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가', note: '21일 경과' },
@@ -284,7 +345,6 @@ createApp({
       { rank: 5, probability: '29.0%', benefit: '룬 경험치 버프 효과 +100%', note: '42일 경과' },
     ]);
 
-    // 최근 진행된 썬데이 목록 데이터 추가 (API 연동 전 임시 하드코딩)
     const recentSundays = ref([
       { date: '4월 12일', benefit: '몬스터 파크 클리어 경험치 추가 250%, 소울 조각 사용 시 위대한 소울 획득 확률 5배' },
       { date: '4월 5일', benefit: '어빌리티 재설정 비용 50% 할인, V 매트릭스 코어 젬스톤 획득 확률 2배' },
@@ -300,7 +360,14 @@ createApp({
       }
     }
 
-    return { searchKeyword, predictions, recentSundays, reSearch };
+    return { 
+      searchKeyword, 
+      predictions, 
+      recentSundays, 
+      reSearch,
+      nextStarForceDate, 
+      nextMiracleDayDate 
+    };
   }
 }).mount('#app');
 </script>
