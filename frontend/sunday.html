@@ -674,17 +674,26 @@ createApp({
 
     // 👇 예측 날짜 수정 가능 영역
     const nextStarForceDate = ref('2026.10.04');
-    const nextMiracleDayDate = ref('2026.09.20');
+    const nextMiracleDayDate = ref('2026.09.27');
 
     const predictions = ref([
-      { rank: 1, probability: '64.3%', benefit: '소울 조각 사용 시 위대한 소울 획득 확률 5배', note: '10주 경과' },
-      { rank: 2, probability: '55.7%', benefit: '어빌리티 재설정 비용 50% 할인', note: '7주 경과' },
-      { rank: 3, probability: '47.7%', benefit: "미라클 타임", note: '7주 경과' },
-      { rank: 4, probability: '47.3%', benefit: "몬스터 파크 클리어 경험치 추가 250%", note: '4주 경과' },
-      { rank: 5, probability: '41.7%', benefit: "트레져 헌터 경험치 3배, 사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가", note: '3주 경과' },
+      { rank: 1, probability: '56.5%', benefit: '어빌리티 재설정 비용 50% 할인', note: '8주 경과' },
+      { rank: 2, probability: '50.7%', benefit: '미라클 타임', note: '8주 경과' },
+      { rank: 3, probability: '45.6%', benefit: "샤이닝 스타포스", note: '3주 경과' },
+      { rank: 4, probability: '44.8%', benefit: "트레져 헌터 경험치 3배", note: '4주 경과' },
+      { rank: 5, probability: '41.5%', benefit: "사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가", note: '4주 경과' },
     ]);
 
     const recentSundays = ref([
+      {
+        date: '9월 20일',
+        benefit: '소울 조각 사용 시 위대한 소울 획득 확률 5배, 몬스터 파크 클리어 경험치 추가 250%, 주문의 흔적 강화 비용 50% 할인',
+        benefit1: '소울 조각 사용 시 위대한 소울 획득 확률 5배, ',
+        benefit2: '몬스터 파크 클리어 경험치 추가 250%, 주문의 흔적 강화 비용 50% 할인',
+        hit: true,
+        hitRank: 1,
+        extraHitRank: 4
+      },
       {
         date: '9월 13일',
         benefit: "룬 재등장 및 재사용 대기시간 감소, 룬 경험치 버프 효과 +100%, 콤보킬 경험치 획득량 +300%, 몬스터 컬렉션 신규 몬스터 등록 확률 추가 100%, 몬스터 컬렉션 '의문의 모몽' 3개 지급, 사냥 시 소환되는 엘리트 몬스터 수 증가(1마리→3마리)",
@@ -713,12 +722,6 @@ createApp({
         hit: true,
         hitRank: 1,
         extraHitRank: 2
-      },
-      {
-        date: '8월 16일',
-        benefit: '샤이닝 스타포스, [HEXA 스탯] 메인 스탯이 5레벨 이상일 때, 메인 스탯의 강화 확률 20% 증가',
-        hit: true,
-        hitRank: 1
       }
     ]);
 
