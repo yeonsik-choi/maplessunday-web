@@ -511,7 +511,7 @@
         <span class="notice-icon">📢</span>
         <div class="notice-body">
           <span class="notice-label">공지</span>
-          <strong>11월 29일</strong> 썬데이 예측은 <strong>11월 20일</strong>에 업데이트될 예정입니다.
+          <strong>12월 6일</strong> 썬데이 예측은 <strong>11월 27일</strong>에 업데이트될 예정입니다.
         </div>
       </div>
 
@@ -674,19 +674,25 @@ createApp({
 
     // 👇 예측 날짜 수정 가능 영역
     const nextStarForceDate = ref('2026.12.06');
-    const nextMiracleDayDate = ref('2026.11.22');
+    const nextMiracleDayDate = ref('2027.01.10');
 
     const predictions = ref([
 
-      { rank: 1, probability: '59.7%', benefit: '소울 조각 사용 시 위대한 소울 획득 확률 5배', note: '9주 경과' },
-      { rank: 2, probability: '51.7%', benefit: '미라클 타임', note: '8주 경과' },
-      { rank: 3, probability: '48.4%', benefit: "룬 기본 지속시간 50% 증가, 룬 경험치 버프 효과 +100%, 콤보킬 경험치 획득량 +300%", note: '4주 경과' },
-      { rank: 4, probability: '46.5%', benefit: "몬스터 파크 클리어 경험치 추가 250%", note: '2주 경과' },
-      { rank: 5, probability: '44.1%', benefit: "사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가", note: '5주 경과' },
+      { rank: 1, probability: '67.4%', benefit: '소울 조각 사용 시 위대한 소울 획득 확률 5배', note: '10주 경과' },
+      { rank: 2, probability: '50.9%', benefit: '룬 기본 지속시간 50% 증가, 룬 경험치 버프 효과 +100%, 콤보킬 경험치 획득량 +300%', note: '5주 경과' },
+      { rank: 3, probability: '44.4%', benefit: "몬스터 파크 클리어 경험치 추가 250%", note: '3주 경과' },
+      { rank: 4, probability: '43.8%', benefit: "사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가", note: '6주 경과' },
+      { rank: 5, probability: '41.1%', benefit: "트레져 헌터 경험치 3배, 트레져 헌터 등장 확률 2배", note: '3주 경과' },
 
     ]);
 
     const recentSundays = ref([
+      {
+        date: '11월 22일',
+        benefit: "미라클 타임",
+        hit: true,
+        hitRank: 2
+      },
       {
         date: '11월 15일',
         benefit: "어빌리티 재설정 비용 50% 할인, 주문의 흔적 강화 비용 50% 할인, 몬스터 컬렉션 신규 몬스터 등록 확률 추가 100%, 몬스터 컬렉션 '의문의 모몽' 3개 지급, 사냥 시 소환되는 엘리트 몬스터 수 증가(1마리→3마리)",
@@ -710,15 +716,6 @@ createApp({
         benefit: '[HEXA 스탯] 메인 스탯이 5레벨 이상일 때, 메인 스탯의 강화 확률 20% 증가, 룬 기본 지속시간 50% 증가, 룬 경험치 버프 효과 +100%, 콤보킬 경험치 획득량 +300%',
         benefit1: '[HEXA 스탯] 메인 스탯이 5레벨 이상일 때, 메인 스탯의 강화 확률 20% 증가, ',
         benefit2: '룬 기본 지속시간 50% 증가, 룬 경험치 버프 효과 +100%, 콤보킬 경험치 획득량 +300%',
-        hit: true,
-        hitRank: 2,
-        extraHitRank: 3
-      },
-      {
-        date: '10월 18일',
-        benefit: '몬스터 파크 클리어 경험치 추가 250%, 사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가, 트레져 헌터 경험치 3배',
-        benefit1: '몬스터 파크 클리어 경험치 추가 250%, ',
-        benefit2: '사냥을 통해 획득할 수 있는 솔 에르다 2배로 증가, 트레져 헌터 경험치 3배',
         hit: true,
         hitRank: 2,
         extraHitRank: 3
